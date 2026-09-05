@@ -525,29 +525,25 @@ templates/
 If this file does not exist, you can generate it with:
 
 ```bash
-pyblade make:template layouts.app
+pyblade make:layout app
 ```
 
-Your application layout should contain a `@yield("content")` directive where the full-page component's content will be rendered:
+Your application layout should contain a `{{ slot }}` placeholder where the full-page component's content will be rendered:
 
-```html
+```html title="templates/layouts/app.html"
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@lang">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>{{ title }}</title>
+    
+    @pbstyles
 </head>
 
 <body>
-    <header>
-        <!-- Application navigation -->
-    </header>
-
-    <main>
-        @yield("content")
-    </main>
+    {{ slot }}
 
     @pbscripts
 </body>
@@ -559,17 +555,17 @@ The layout is responsible for the common structure of your application, while th
 You can customize the default application layout in your `pyblade.toml` file. This is useful when your application has a different layout structure, for example:
 
 ```toml
-[components]
-layout = "layouts.dashboard"
+[live_component]
+layout = "layouts.page"
 ```
 
-With this configuration, full-page components will use `templates/layouts/dashboard.html` instead of `templates/layouts/app.html`.
+With this configuration, full-page components will use `templates/layouts/page.html` instead of `templates/layouts/app.html`.
 
 ### Component-specific layouts
 
 Sometimes a particular full-page component needs a different layout from the application's default layout. For example, a dashboard may use a different navigation structure from a public-facing page.
 
-You can specify a layout directly on the component by overriding its layout configuration:
+You can specify a layout directly on the component by overriding its `layout` property:
 
 ```python
 from pyblade import LiveComponent
@@ -581,7 +577,32 @@ class Dashboard(LiveComponent):
 
 The `Dashboard` component will then use `templates/layouts/dashboard.html` instead of the default application layout.
 
-This allows you to keep a single default layout for most pages while giving individual full-page components the flexibility to use a different layout when necessary.
+You can also use the `@layout` decorator:
+
+```python
+from pyblade import LiveComponent
+from pyblade.decorators import layout
+
+
+@layout("layouts.dashboard")
+class Dashboard(LiveComponent):
+    ...
+```
+
+For more advanced cases, you can override the `get_layout()` method to determine the layout dynamically:
+
+```python
+from pyblade import LiveComponent
+
+
+class Dashboard(LiveComponent):
+
+    def get_layout(self):
+        if self.user.is_admin:
+            return "layouts.admin"
+
+        return "layouts.dashboard"
+```
 
 ### Navigating between full-page components
 
