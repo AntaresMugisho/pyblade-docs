@@ -7,9 +7,27 @@ PyBlade comes with a command line tool, `pyblade`, that starts projects, runs yo
 
 The CLI is installed with PyBlade itself, there is nothing more to install:
 
-```bash
-pip install pyblade
-```
+
+<Tabs groupId="package-manager" items={['pip', 'poetry', 'uv']}>
+  <Tab>
+  ```bash
+  pip install pyblade
+  ```
+  </Tab>
+
+  <Tab>
+  ```bash
+  poetry add pyblade
+  ```
+  </Tab>
+
+  <Tab>
+  ```bash
+  uv add pyblade
+  ```
+  </Tab>
+</Tabs>
+
 
 ## Checking the version
 
@@ -27,10 +45,15 @@ pyblade upgrade
 
 ## Getting help
 
-Run `pyblade` alone to list every command with a short description. Add `--help` to any command to see its arguments and options:
+Run `pyblade` alone to list every command with a short description. 
 
 ```bash
 pyblade
+```
+
+Add `--help` to any command to see its arguments and options:
+
+```bash
 pyblade make:live --help
 ```
 
@@ -44,5 +67,3 @@ Most commands look for your project's [`pyblade.toml`](/configuration) starting 
 <Callout type="info" title="Commands of your framework">
 In a Django project, `pyblade` also lists Django's own management commands (`migrate`, `test`, `createsuperuser`...) and runs them for you, so you can use one tool for everything. These are Django's commands, not PyBlade's, and are documented in [Django's documentation](https://docs.djangoproject.com/en/stable/ref/django-admin/). This section only documents the commands PyBlade provides.
 </Callout>
-
-Next: the [list of commands](/cli/commands), then how to [write your own](/cli/custom-commands).

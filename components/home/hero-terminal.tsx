@@ -17,7 +17,7 @@ const LINES: Line[] = [
   { kind: 'ask', label: 'Project name', value: 'blog' },
   { kind: 'ask', label: 'Framework', value: 'Django' },
   { kind: 'ok', text: 'Created blog/ and pyblade.toml' },
-  { kind: 'cmd', text: 'pyblade serve' },
+  { kind: 'cmd', text: 'pyblade dev' },
   { kind: 'url', text: 'http://127.0.0.1:8000' },
   // Trailing prompt so the caret has somewhere to rest once the run finishes.
   { kind: 'cmd', text: '' },

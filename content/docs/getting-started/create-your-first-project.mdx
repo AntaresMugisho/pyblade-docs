@@ -17,13 +17,13 @@ pyblade init
 
 PyBlade will guide you through the setup process and ask you a few questions:
 
-1. **Project name** — Choose a name for your project. You can use `.` to initialize PyBlade directly in the current directory.
+- **Project name.** Use `.` to start the project in the current directory. The default is `my_project`.
+- **Framework.** Django, Flask or FastAPI.
+- **Tailwind CSS.** Whether to install and configure it.
 
-2. **Python web framework** — Select the framework your project uses. Currently, PyBlade supports Django.
+It then shows a summary and asks you to confirm before writing anything. It refuses to start in a directory that already holds a project (a `manage.py` or a `pyblade.toml`), so it can never write over your work.
 
-After answering these questions, PyBlade will initialize your project based on the selected framework and prepare everything you need to start developing.
-
-During this process, PyBlade creates the required project structure and adds a `pyblade.toml` file at the root of your project.
+After your confirmation, PyBlade will initialize your project based on the selected framework and prepare everything you need to start developing. During this process, PyBlade creates the required project structure and adds a `pyblade.toml` file at the root of your project.
 
 This file contains PyBlade's configuration and allows the engine and CLI to understand your project. You can use it later to customize PyBlade's behavior, but for now, the default configuration is all you need.
 
@@ -34,7 +34,7 @@ With the setup complete, you can start building your application without worryin
 Once your project has been initialized, you can start the development server with:
 
 ```bash
-pyblade serve
+pyblade dev
 ```
 
 This command starts your application and launches the development environment.
@@ -268,7 +268,7 @@ Our template is ready, but there is one last step before we can see it in the br
 Start your development server if it is not already running:
 
 ```bash
-pyblade serve
+pyblade dev
 ```
 
 Now open the following address in your browser:

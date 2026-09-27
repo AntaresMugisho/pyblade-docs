@@ -312,10 +312,10 @@ The second approach is to pass a `template` argument to the `paginate()` method 
 posts = self.paginate(Post.objects.all(), 10, template="pagination.custom")
 ```
 
-However, if you want to tweak the default Tailwind or Bootstrap pagination templates provided by PyBlade Live, the recommended way is to **export the pagination templates** to your project using the `live:stubs` command with the `--pagination` flag :
+However, if you want to tweak the default Tailwind or Bootstrap pagination templates provided by PyBlade Live, the recommended way is to **export the pagination templates** to your project using the `copy:stubs` command with the `--pagination` flag :
 
 ```bash
-pyblade live:stubs --pagination
+pyblade copy:stubs --pagination
 ```
 
 After running this command, the following two files will be inserted into the `templates/stubs/pagination` directory:

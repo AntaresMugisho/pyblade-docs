@@ -11,7 +11,7 @@ description: "Every command PyBlade provides, with its arguments and options."
 | [`make:component`](#pyblade-makecomponent) | Create a component |
 | [`make:live`](#pyblade-makelive) | Create a live component |
 | [`make:command`](#pyblade-makecommand) | Create your own command |
-| [`live:stubs`](#pyblade-livestubs) | Copy PyBlade's own templates into your project to customize them |
+| [`copy:stubs`](#pyblade-livestubs) | Copy PyBlade's own templates into your project to customize them |
 | [`messages:make`](#pyblade-messagesmake) | Extract translatable strings |
 | [`messages:compile`](#pyblade-messagescompile) | Compile translations |
 | [`tailwind:config`](#pyblade-tailwindconfig) | Install and configure Tailwind CSS |
@@ -85,31 +85,6 @@ pyblade dev --host 0.0.0.0 --port 5000
 
 `pyblade serve`
 
-## Where files are created
-
-`make:template`, `make:component` and `make:live` create files where your project says templates and components are ([`paths.templates`](/configuration#paths) and [`paths.components`](/configuration#paths)), **from the root of the project**, wherever you run the command. Run from a subfolder, the file still lands in the project's own `templates/` or `components/`, never in a new folder next to you.
-
-### Creating files in a Django app
-
-A Django project is often made of apps, and an app can bring its own templates and components, the way it brings its own models. Give the app's label with `--app` and the file is created in that app instead of at the root of the project:
-
-```bash
-pyblade make:template billing.invoice --app billing
-pyblade make:component ui.badge --app billing
-pyblade make:live cart --app billing
-```
-
-```text
-apps/billing/templates/billing/invoice.html
-apps/billing/components/ui/badge.html
-apps/billing/components/cart/cart.py
-apps/billing/components/cart/cart.html
-```
-
-The folder names are the ones your project uses (`templates` and `components` by default), created inside the app. If the label is not one of your project's apps, the command lists the labels that are. `--app` only makes sense in Django projects.
-
-Templates of an app are found the way Django finds them. For components, see [how components are found](/components#where-components-are-found).
-
 ## `pyblade make:template`
 
 Creates a new template in your templates folder ([`paths.templates`](/configuration#paths)).
@@ -143,7 +118,7 @@ pyblade make:component NAME [OPTIONS]
 | `NAME` | The name of the component. Separate folders with dots: `ui.alert` creates `components/ui/alert.html`. A name in PascalCase (`AlertBox`) is turned into `alert_box`. |
 | `-a`, `--app` | In a Django project, create the component in the `components` folder of this app instead. See [Creating files in a Django app](#creating-files-in-a-django-app). |
 | `-l`, `--live` | Create a [live component](#pyblade-makelive) instead: a Python class and its template. |
-| `-i`, `--inline` | Create a live component without a template file, the template being written inside its class. |
+| `-i`, `--inline` | Create a live component without a template file, the template being written inside its class. This must be used with the `--live` oprtion. |
 | `-f`, `--force` | Overwrite the component if it already exists. |
 
 ```bash
@@ -152,6 +127,31 @@ pyblade make:component ui.card
 ```
 
 Without `--force`, the command refuses to write over a component that already exists.
+
+## Where files are created
+
+`make:template`, `make:component` and `make:live` create files where your project says templates and components are ([`paths.templates`](/configuration#paths) and [`paths.components`](/configuration#paths)), **from the root of the project**, wherever you run the command. Run from a subfolder, the file still lands in the project's own `templates/` or `components/`, never in a new folder next to you.
+
+### Creating files in a Django app
+
+A Django project is often made of apps, and an app can bring its own templates and components, the way it brings its own models. Give the app's label with `--app` and the file is created in that app instead of at the root of the project:
+
+```bash
+pyblade make:template billing.invoice --app billing
+pyblade make:component ui.badge --app billing
+pyblade make:live cart --app billing
+```
+
+```text
+apps/billing/templates/billing/invoice.html
+apps/billing/components/ui/badge.html
+apps/billing/components/cart/cart.py
+apps/billing/components/cart/cart.html
+```
+
+The folder names are the ones your project uses (`templates` and `components` by default), created inside the app. If the label is not one of your project's apps, the command lists the labels that are. `--app` only makes sense in Django projects.
+
+Templates of an app are found the way Django finds them. For components, see [how components are found](/components#where-components-are-found).
 
 ## `pyblade make:live`
 
@@ -165,6 +165,7 @@ pyblade make:live NAME [OPTIONS]
 |---|---|
 | `NAME` | The name of the component, with dots for folders, as in `make:component`. |
 | `-a`, `--app` | In a Django project, create the component in the `components` folder of this app instead. See [Creating files in a Django app](#creating-files-in-a-django-app). |
+| `--flat` | Create the two files side by side, without a folder. |
 | `-i`, `--inline` | Write only the Python class, with the template inside it, instead of a separate `.html` file. |
 | `-f`, `--force` | Overwrite the component if it already exists. |
 
@@ -179,7 +180,7 @@ components/counter/counter.py     # the Counter class
 components/counter/counter.html   # its template
 ```
 
-With [`live_components.own_folder`](/configuration#live_components) set to `false`, the two files are created side by side, without the `counter/` folder.
+With [`live_components.flat`](/configuration#live_components) set to `true`, the two files are created side by side, without the `counter/` folder.
 
 #### Aliases
 
@@ -195,18 +196,18 @@ pyblade make:command NAME [OPTIONS]
 
 | Argument / option | Description |
 |---|---|
-| `NAME` | The name of the command file, also used as the name of the command: `report:send` creates `management/commands/report:send.py`, in the commands folder of your project ([`paths.commands`](/configuration#paths)). |
+| `NAME` | The name of the command file, also used as the name of the command: `report:send` creates `report:send.py`, in the commands folder of your project ([`paths.commands`](/configuration#paths)). |
 | `-d`, `--description` | The description shown in the command's help. |
 | `-f`, `--force` | Overwrite the command if it already exists. |
 
 Read [Custom commands](/cli/custom-commands) to see how to fill it in.
 
-## `pyblade live:stubs`
+## `pyblade copy:stubs`
 
-PyBlade draws some parts of a live application itself, such as the pagination links. `live:stubs` copies those templates into your project, so you can change them. Once a copy exists, PyBlade draws with yours instead of its own.
+PyBlade draws some parts of a live application itself, such as the pagination links. `copy:stubs` copies those templates into your project, so you can change them. Once a copy exists, PyBlade draws with yours instead of its own.
 
 ```bash
-pyblade live:stubs --pagination [--force]
+pyblade copy:stubs --pagination [--force]
 ```
 
 | Option | Description |

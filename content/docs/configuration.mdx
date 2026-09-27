@@ -136,7 +136,7 @@ Options for [live components](/live-components/introduction).
 
 | Key | Default | Description |
 |---|---|---|
-| `own_folder` | `true` | Whether `pyblade make:live` puts each component's class and template in a folder of its own. Set to `false` to have them side by side. |
+| `flat` | `true` | Whether `pyblade make:live` puts each component's class and template in a folder of its own. Set to `false` to have them side by side. |
 | `paginator` | `""` | The default template used to render pagination links. |
 | `default_layout` | `"layouts.app"` | The layout a full-page live component is rendered in when it doesn't name one. |
 
@@ -196,7 +196,7 @@ components = "components"
 commands = "management/commands"
 
 [live_components]
-own_folder = true
+flat = true
 paginator = ""
 default_layout = "layouts.app"
 

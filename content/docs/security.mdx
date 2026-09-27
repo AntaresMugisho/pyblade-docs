@@ -1,5 +1,6 @@
 ---
 title: "Security"
+icon: ShieldAlert
 ---
 
 PyBlade renders templates on the server and, with live components, lets the browser call your Python code. Most of what keeps an application safe is done for you: output is escaped, template expressions run in a sandbox, the state a live component sends to the browser is signed, and the live endpoints are rate-limited. What is left to you is mostly one rule, which this page comes back to often: **anything that arrives from the browser is input, and has to be checked like input**.

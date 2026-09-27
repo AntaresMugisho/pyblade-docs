@@ -18,7 +18,7 @@ const steps = [
       'Pick a name, your web framework and a CSS framework. settings.py is wired up for you.',
   },
   {
-    command: 'pyblade serve',
+    command: 'pyblade dev',
     title: 'Run it',
     detail: 'Your app is live at http://127.0.0.1:8000, with hot reload on your templates.',
   },
