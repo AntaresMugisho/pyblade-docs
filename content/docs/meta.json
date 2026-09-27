@@ -16,10 +16,14 @@
     "---LIVE COMPONENTS---",
     "...live-components",
 
+    "---SECURITY---",
+    "security",
+
     "---PYBLADE CLI---",
     "...cli",
-    
-    "---OUTRO---",
-    "...outro"
+
+    "---CONFIGURATION---",
+    "frameworks",
+    "configuration"
   ]
 }

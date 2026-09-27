@@ -1,63 +1,48 @@
 ---
-title: "PyBlade CLI Overview"
+title: "Overview"
+description: "The pyblade command line: start projects, run the development server, generate files and manage translations."
 ---
 
-Learn how to use the PyBlade command-line interface (CLI) to manage and configure your PyBlade projects from the command line. The PyBlade CLI allows you to interact with your PyBlade environment efficiently, whether you're working with Django or Flask. With it, you can streamline your development workflow, manage templates, and configure settings, all from the terminal.
+PyBlade comes with a command line tool, `pyblade`, that starts projects, runs your development server and generates the files you would otherwise write by hand: templates, components, live components and your own commands.
 
-The PyBlade CLI allows you to streamline your development workflow, making it easy to manage components, databases, templates, and settings, whether you're working locally on a project or automating tasks. By leveraging the CLI, you can simplify many common tasks involved in web development, from generating new components to running migrations, all within a terminal environment.
-
-
-    
-## Installing PyBlade CLI
-
-To get started with PyBlade and its CLI, you first need to install the PyBlade package. When you install PyBlade, it includes the PyBlade CLI by default, so you won’t need to install it separately. To install PyBlade globally on your system, run the following command:
+The CLI is installed with PyBlade itself, there is nothing more to install:
 
 ```bash
-pip install pyblade[cli]
+pip install pyblade
 ```
 
-This command will install the PyBlade package along with the command-line interface, allowing you to begin using the full set of features right away. Once installed, you can use the PyBlade CLI to manage your templates and components more efficiently.
-
----
-
-## Updating PyBlade CLI
-
-PyBlade CLI is regularly updated to include new features, bug fixes, and improvements. If there is a new version of PyBlade CLI available, you will be notified whenever you run any PyBlade command. To ensure you're using the latest version, you can update the CLI by running the installation command again:
+## Checking the version
 
 ```bash
-pip install --upgrade pyblade[cli]
+pyblade -v
 ```
 
-This will automatically update PyBlade and its CLI to the most recent version. If you encounter any issues related to permissions during the update, you may need to use elevated privileges (e.g., `sudo` on Unix-based systems) or consult the official Python documentation on managing package installations.
-
----
-
-## Checking the Version of PyBlade CLI
-
-If you ever need to check which version of PyBlade CLI you have installed, you can easily do so by using the `--version` flag with the `pyblade` command:
+## Updating PyBlade
 
 ```bash
-pyblade --version
+pyblade upgrade
 ```
 
-This will display the version number of the PyBlade CLI installed on your system. It's a useful command when troubleshooting issues or ensuring you're using a compatible version with other tools or components in your project.
+`pyblade upgrade` upgrades PyBlade with the package manager your project uses (`uv`, `poetry`, `pipenv` or `pip`), the one it finds from your lock file or from the active virtual environment. It tells you whether a newer version was installed.
 
----
+## Getting help
 
-## Getting Help with PyBlade CLI
-
-The PyBlade CLI provides detailed help and documentation directly from the terminal. To view a list of all available commands and their descriptions, simply run:
+Run `pyblade` alone to list every command with a short description. Add `--help` to any command to see its arguments and options:
 
 ```bash
-pyblade --help
+pyblade
+pyblade make:live --help
 ```
 
-This will output a list of available commands, along with a brief explanation of what each one does. If you need more specific guidance on how to use a particular command, you can access detailed help for that command by appending the `--help` flag to it. For example, to learn more about how to generate a new component, you can run:
+## Where commands run
 
-```bash
-pyblade make:component --help
-```
+Most commands look for your project's [`pyblade.toml`](/configuration) starting from the current directory and going up, so they work from any folder of your project. Two things are read from it that matter to the commands:
 
-This will provide detailed information about the `make:component` command, including its arguments, options, and any available examples. The help system is an excellent resource for learning about PyBlade CLI commands as you work through your development process.
+- [`[paths]`](/configuration#paths) says where templates, components and your own commands live.
+- [`[stack]`](/configuration#stack) says which framework and package managers the project uses.
 
+<Callout type="info" title="Commands of your framework">
+In a Django project, `pyblade` also lists Django's own management commands (`migrate`, `test`, `createsuperuser`...) and runs them for you, so you can use one tool for everything. These are Django's commands, not PyBlade's, and are documented in [Django's documentation](https://docs.djangoproject.com/en/stable/ref/django-admin/). This section only documents the commands PyBlade provides.
+</Callout>
 
+Next: the [list of commands](/cli/commands), then how to [write your own](/cli/custom-commands).

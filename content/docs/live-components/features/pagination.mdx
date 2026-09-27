@@ -27,7 +27,7 @@ class PostList(
         post_list = Post.objects.all()
         posts = self.paginate(post_list, 25) # Show 25 posts per page. 
         
-        return self.view("post-list", {
+        return self.render_template("post-list", {
             'posts': posts,
         })
 ```
@@ -131,7 +131,7 @@ form app.models import Client
 class ClientList(Component, Paginator):
 
    def render(self):
-        return self.view('client-list', {
+        return self.render_template('client-list', {
             'clients': self.paginate(Client.objects.all(), 10)
         })
 ```
@@ -151,7 +151,7 @@ from app.models import invoices
 class InvoiceList(Component, Paginator):
 
    def render(self):
-        return self.view('invoice-list', {
+        return self.render_template('invoice-list', {
             'invoices': self.paginate(Invoice.objects.all(), 10, page_name="invoice_page")
         })
 ```
@@ -186,13 +186,13 @@ class SearchPosts(Component, Paginator):
         if self.query:
             posts.appends(q=self.query)
         
-        return self.view("post-list", {"posts": posts})
+        return self.render_template("post-list", {"posts": posts})
 ```
 
 ```blade
 <div>
-    <form pb-submit="search">
-        <input type="text" pb-model="query">
+    <form pb:submit="search">
+        <input type="text" pb:model="query">
 
         <button type="submit">Search posts</button>
     </form>
@@ -240,7 +240,7 @@ class PostList(Component, Paginator):
         pass
 
     def render(self):
-        return view('post-list', {
+        return self.render_template('post-list', {
             'posts': self.paginate(Post.objects.all(), 10)
         })
 ```
@@ -365,7 +365,7 @@ Below is an unstyled sample of a simple PyBlade Live pagination view for your re
                 @if (paginator.on_first_page())
                     <span>Previous</span>
                 @else
-                    <button pb-click="previous_page" pb-loading.attr="disabled" rel="prev">Previous</button>
+                    <button pb:click="previous_page" pb:loading.attr="disabled" rel="prev">Previous</button>
                 @endif
             </span>
 
@@ -373,7 +373,7 @@ Below is an unstyled sample of a simple PyBlade Live pagination view for your re
                 @if (paginator.on_last_page())
                     <span>Next</span>
                 @else
-                    <button pb-click="next_page" pb-loading.attr="disabled" rel="next">Next</button>
+                    <button pb:click="next_page" pb:loading.attr="disabled" rel="next">Next</button>
                 @endif
             </span>
         </nav>
@@ -381,5 +381,5 @@ Below is an unstyled sample of a simple PyBlade Live pagination view for your re
 </div>
 ```
 
-As you can see, you can use PyBlade Live's page navigation helpers like `self.next_page()` directly inside your template by adding `pb-click="next_page"` to buttons.
+As you can see, you can use PyBlade Live's page navigation helpers like `self.next_page()` directly inside your template by adding `pb:click="next_page"` to buttons.
 

@@ -2,8 +2,8 @@
 title: "PyBlade Live directives"
 ---
 
-## pb-click
-PyBlade Live provides a simple `pb-click` directive for calling component methods (aka actions) when a user clicks a specific element on the page.
+## pb:click
+PyBlade Live provides a simple `pb:click` directive for calling component methods (aka actions) when a user clicks a specific element on the page.
 
 For example, given the `InvoiceDetail` component below:
 
@@ -20,32 +20,32 @@ class ShowInvoice(LiveComponent):
         )
 ```
 
-In the component's template, you can trigger the `download()` method from the class above when a user clicks a "Download Invoice" button by adding `pb-click="download"`:
+In the component's template, you can trigger the `download()` method from the class above when a user clicks a "Download Invoice" button by adding `pb:click="download"`:
 
 ```html
-<button type="button" pb-click="download"> // [!code highlight]
+<button type="button" pb:click="download"> // [!code highlight]
     Download Invoice
 </button>
 ```
 
-### Using `pb-click` on links
+### Using `pb:click` on links
 
-When using `pb-click` on `<a>` tags, you must append `.prevent` to prevent the default handling of a link in the browser. Otherwise, the browser will visit the provided link and update the page's URL.
+When using `pb:click` on `<a>` tags, you must append `.prevent` to prevent the default handling of a link in the browser. Otherwise, the browser will visit the provided link and update the page's URL.
 
 ```html
-<a href="#" pb-click.prevent="...">
+<a href="#" pb:click.prevent="...">
 ```
 
 ### Going deeper
 
-The `pb-click` directive is just one of many different available event listeners in PyBlade Live. For full documentation on its (and other event listeners) capabilities, visit the [PyBlade Live documentation](/docs/live/actions) page.
+The `pb:click` directive is just one of many different available event listeners in PyBlade Live. For full documentation on its (and other event listeners) capabilities, visit the [PyBlade Live documentation](/live-components/actions) page.
 
 
-## pb-submit
+## pb:submit
 
-PyBlade Live makes it easy to handle form submissions via the `pb-submit` directive. By adding `pb-submit` to a `<form>` element, PyBlade Live will intercept the form submission, prevent the default browser handling, and call any PyBlade Live component method.
+PyBlade Live makes it easy to handle form submissions via the `pb:submit` directive. By adding `pb:submit` to a `<form>` element, PyBlade Live will intercept the form submission, prevent the default browser handling, and call any PyBlade Live component method.
 
-Here's a basic example of using `pb-submit` to handle a "PostCreate" form submission:
+Here's a basic example of using `pb:submit` to handle a "PostCreate" form submission:
 
 ```python
 from pyblade import LiveComponent
@@ -60,23 +60,23 @@ class PostCreate(LiveComponent)
         self.redirect("/posts")
 
     def render(self):
-        return self.view("live.post-create")
+        return self.render_template("live.post-create")
 ```
 
 ```html
-<form pb-submit="save"> <!-- [!code highlight] -->
-    <input type="text" pb-model="title">
+<form pb:submit="save"> <!-- [!code highlight] -->
+    <input type="text" pb:model="title">
 
-    <textarea pb-model="content"></textarea>
+    <textarea pb:model="content"></textarea>
 
     <button type="submit">Save</button>
 </form>
 ```
 
-In the above example, when a user submits the form by clicking "Save", `pb-submit` intercepts the `submit` event and calls the `save()` action on the server.
+In the above example, when a user submits the form by clicking "Save", `pb:submit` intercepts the `submit` event and calls the `save()` action on the server.
 
 <Callout type="info" title={"PyBlade Live automatically calls `preventDefault()`"}>
-`pb-submit` is different than other PyBlade Live event handlers in that it internally calls `event.preventDefault()` without the need for the `.prevent` modifier. This is because there are very few instances you would be listening for the `submit` event and NOT want to prevent it's default browser handling (performing a full form submission to an endpoint).
+`pb:submit` is different than other PyBlade Live event handlers in that it internally calls `event.preventDefault()` without the need for the `.prevent` modifier. This is because there are very few instances you would be listening for the `submit` event and NOT want to prevent it's default browser handling (performing a full form submission to an endpoint).
 </Callout>
 
 <Callout type="info" title={"PyBlade Live automatically disables forms while submitting"}>
@@ -85,13 +85,13 @@ By default, when PyBlade Live is sending a form submission to the server, it wil
 
 ### Going deeper
 
-`pb-submit` is just one of many event listeners that PyBlade Live provides. The [PyBlade Live forms](/docs/live/forms) section provides much more complete documentation on using `pb-submit` in your application:
+`pb:submit` is just one of many event listeners that PyBlade Live provides. The [PyBlade Live forms](/live-components/forms) section provides much more complete documentation on using `pb:submit` in your application:
 
-## pb-model
+## pb:model
 
-PyBlade Live makes it easy to bind a component property's value with form inputs using `pb-model`.
+PyBlade Live makes it easy to bind a component property's value with form inputs using `pb:model`.
 
-Here is a simple example of using `pb-model` to bind the `title` and `content` properties with form inputs in a `PostCreate` component:
+Here is a simple example of using `pb:model` to bind the `title` and `content` properties with form inputs in a `PostCreate` component:
 
 ```python
 from pyblade import LiveComponent
@@ -106,21 +106,21 @@ class PostCreate(LiveComponent)
         self.redirect("/posts")
 
     def render(self):
-        return self.view("live.post-create")
+        return self.render_template("live.post-create")
 ```
 
 ```html {2,4}
-<form pb-submit="save">
-    <input type="text" pb-model="title">
+<form pb:submit="save">
+    <input type="text" pb:model="title">
 
-    <textarea pb-model="content"></textarea>
+    <textarea pb:model="content"></textarea>
 
     <button type="submit">Save</button>
 </form>
 ```>
 ```
 
-Because both inputs use `pb-model`, their values will be synchronized with the server's properties when the "Save" button is pressed.
+Because both inputs use `pb:model`, their values will be synchronized with the server's properties when the "Save" button is pressed.
 
 <Callout type="warn" title={"\"Why isn't my component live updating as I type?\""}>
 If you tried this in your browser and are confused why the title isn't automatically updating, it's because PyBlade Live only updates a component when an "action" is submitted — like pressing a submit button — not when a user types into a field. This cuts down on network requests and improves performance.
@@ -128,7 +128,7 @@ If you tried this in your browser and are confused why the title isn't automatic
 
 ### Customizing update timing
 
-By default, PyBlade Live will only send a network request when an action is performed (like `pb-click` or `pb-submit`), NOT when a `pb-model` input is updated.
+By default, PyBlade Live will only send a network request when an action is performed (like `pb:click` or `pb:submit`), NOT when a `pb:model` input is updated.
 
 This drastically improves the performance of PyBlade Live by reducing network requests and provides a smoother experience for your users.
 
@@ -136,20 +136,20 @@ However, there are occasions where you may want to update the server more freque
 
 #### PyBlade Live updating
 
-To send property updates to the server as a user types into an input-field, you can append the `.live` modifier to `pb-model`:
+To send property updates to the server as a user types into an input-field, you can append the `.live` modifier to `pb:model`:
 
 ```html
-<input type="text" pb-model.live="title">
+<input type="text" pb:model.live="title">
 ```
 
 #### Customizing the debounce
 
-By default, when using `pb-model.live`, PyBlade Live adds a 150 millisecond debounce to server updates. This means if a user is continually typing, PyBlade Live will wait until the user stops typing for 150 milliseconds before sending a request.
+By default, when using `pb:model.live`, PyBlade Live adds a 150 millisecond debounce to server updates. This means if a user is continually typing, PyBlade Live will wait until the user stops typing for 150 milliseconds before sending a request.
 
 You can customize this timing by appending `.debounce.Xms` to the input, where `X`is the number of milliseconds. Here is an example of changing the debounce to 250 milliseconds:
 
 ```html
-<input type="text" pb-model.live.debounce.250ms="title">
+<input type="text" pb:model.live.debounce.250ms="title">
 ```
 
 #### Updating on "blur" event
@@ -159,7 +159,7 @@ By appending the `.blur` modifier, PyBlade Live will only send network requests 
 Adding `.blur` is helpful for scenarios where you want to update the server more frequently, but not as a user types. For example, real-time validation is a common instance where `.blur` is helpful.
 
 ```html
-<input type="text" pb-model.blur="title">
+<input type="text" pb:model.blur="title">
 ```
 
 #### Updating on "change" event
@@ -169,7 +169,7 @@ There are times when the behavior of `.blur` isn't exactly what you want and ins
 For example, if you want to run validation every time a select input is changed, by adding `.change`, PyBlade Live will send a network request and validate the property as soon as a user selects a new option. As opposed to `.blur` which will only update the server after the user tabs away from the select input.
 
 ```html
-<select pb-model.change="title">
+<select pb:model.change="title">
     <!-- ... -->
 </select>
 ```
@@ -192,7 +192,7 @@ Any changes made to the select input will be automatically synchronized with the
 
 ### Input fields
 
-PyBlade Live supports most native input elements out of the box. Meaning you should just be able to attach `pb-model` to any input element in the browser and easily bind properties to them.
+PyBlade Live supports most native input elements out of the box. Meaning you should just be able to attach `pb:model` to any input element in the browser and easily bind properties to them.
 
 Here's a comprehensive list of the different available input types and how you use them in a PyBlade Live context.
 
@@ -201,15 +201,15 @@ Here's a comprehensive list of the different available input types and how you u
 First and foremost, text inputs are the bedrock of most forms. Here's how to bind a property named "title" to one:
 
 ```html
-<input type="text" pb-model="title">
+<input type="text" pb:model="title">
 ```
 
 #### Textarea inputs
 
-Textarea elements are similarly straightforward. Simply add `pb-model` to a textarea and the value will be bound:
+Textarea elements are similarly straightforward. Simply add `pb:model` to a textarea and the value will be bound:
 
 ```html
-<textarea type="text" pb-model="content"></textarea>
+<textarea type="text" pb:model="content"></textarea>
 ```
 
 If the "content" value is initialized with a string, PyBlade Live will fill the textarea with that value - there's no need to do something like the following:
@@ -217,7 +217,7 @@ If the "content" value is initialized with a string, PyBlade Live will fill the 
 ```html
 <!-- Warning: This snippet demonstrates what NOT to do... -->
 
-<textarea type="text" pb-model="content">{{ content }}</textarea> [!code --]
+<textarea type="text" pb:model="content">{{ content }}</textarea> [!code --]
 ```
 
 ### Checkboxes
@@ -226,10 +226,10 @@ Checkboxes can be used for single values, such as when toggling a boolean proper
 
 #### Single checkbox
 
-At the end of a signup form, you might have a checkbox allowing the user to opt-in to email updates. You might call this property `receive_updates`. You can easily bind this value to the checkbox using `pb-model`:
+At the end of a signup form, you might have a checkbox allowing the user to opt-in to email updates. You might call this property `receive_updates`. You can easily bind this value to the checkbox using `pb:model`:
 
 ```html
-<input type="checkbox" pb-model="receiveUpdates">
+<input type="checkbox" pb:model="receiveUpdates">
 ```
 
 Now when the `receive_updates` value is `False`, the checkbox will be unchecked. Of course, when the value is `True`, the checkbox will be checked.
@@ -245,9 +245,9 @@ update_types: list[str] = []
 By binding multiple checkboxes to the `update_types` property, the user can select multiple update types and they will be added to the `update_types` list property:
 
 ```html
-<input type="checkbox" value="email" pb-model="update_types">
-<input type="checkbox" value="sms" pb-model="update_types">
-<input type="checkbox" value="notification" pb-model="update_types">
+<input type="checkbox" value="email" pb:model="update_types">
+<input type="checkbox" value="sms" pb:model="update_types">
+<input type="checkbox" value="notification" pb:model="update_types">
 ```
 
 For example, if the user checks the first two boxes but not the third, the value of `update_types` will be: `["email", "sms"]`
@@ -257,20 +257,20 @@ For example, if the user checks the first two boxes but not the third, the value
 To toggle between two or more different values for a single property, you may use radio buttons:
 
 ```html
-<input type="radio" value="yes" pb-model="receive_updates">
-<input type="radio" value="no" pb-model="receive_updates">
+<input type="radio" value="yes" pb:model="receive_updates">
+<input type="radio" value="no" pb:model="receive_updates">
 ```
 
 ### Select dropdowns
 
-PyBlade Live makes it simple to work with `<select>` dropdowns. When adding `pb-model` to a dropdown, the currently selected value will be bound to the provided property name and vice versa.
+PyBlade Live makes it simple to work with `<select>` dropdowns. When adding `pb:model` to a dropdown, the currently selected value will be bound to the provided property name and vice versa.
 
 In addition, there's no need to manually add `selected` to the option that will be selected - PyBlade Live handles that for you automatically.
 
 Below is an example of a select dropdown filled with a static list of states:
 
 ```html
-<select pb-model="state">
+<select pb:model="state">
     <option value="AL">Alabama</option>
     <option value="AK">Alaska</option>
     <option value="AZ">Arizona</option>
@@ -283,7 +283,7 @@ When a specific state is selected, for example, "Alaska", the `state` property o
 Often, you may build your dropdown options dynamically using PyBlade:
 
 ```html
-<select pb-model="state">
+<select pb:model="state">
     @for (state in state_choices)
         <option value="{{ state.id }}">{{ state.label }}</option>
     @endfor
@@ -293,7 +293,7 @@ Often, you may build your dropdown options dynamically using PyBlade:
 If you don't have a specific option selected by default, you may want to show a muted placeholder option by default, such as "Select a state":
 
 ```html
-<select pb-model="state">
+<select pb:model="state">
     <option disabled value="">Select a state...</option>
 
     @for(state in state_choices)
@@ -308,34 +308,34 @@ As you can see, there is no "placeholder" attribute for a select menu like there
 
 Sometimes you may want one select menu to be dependent on another. For example, a list of cities that changes based on which state is selected.
 
-For the most part, this works as you'd expect, however there is one important gotcha: You must add a `pb-key` to the changing select so that PyBlade Live properly refreshes its value when the options change.
+For the most part, this works as you'd expect, however there is one important gotcha: You must add a `pb:key` to the changing select so that PyBlade Live properly refreshes its value when the options change.
 
 Here's an example of two selects, one for states, one for cities. When the state select changes, the options in the city select will change properly:
 
 ```html
 <!-- States select menu... -->
-<select pb-model.live="selected_state">
+<select pb:model.live="selected_state">
     @for(state in country.states)
         <option value="{{ state.id }}">{{ state.label }}</option>
     @endfor
 </select>
 
 <!-- Cities dependent select menu... -->
-<select pb-model.live="selected_city" pb-key="{{ selected_state }}"> // [!code highlight]
+<select pb:model.live="selected_city" pb:key="{{ selected_state }}"> // [!code highlight]
     @for (city in selected_state.cities)
         <option value="{{ city.id }}">{{ city.label }}</option>
     @endfor
 </select>
 ```
 
-Again, the only thing non-standard here is the `pb-key` that has been added to the second select. This ensures that when the state changes, the "selected_city" value will be reset properly.
+Again, the only thing non-standard here is the `pb:key` that has been added to the second select. This ensures that when the state changes, the "selected_city" value will be reset properly.
 
 ### Multi-select dropdowns
 
 If you are using a "multiple" select menu, PyBlade Live works as expected. In this example, states will be added to the `states` list property when they are selected and removed if they are deselected:
 
 ```html
-<select pb-model="states" multiple>
+<select pb:model="states" multiple>
     <option value="AL">Alabama</option>
     <option value="AK">Alaska</option>
     <option value="AZ">Arizona</option>
@@ -345,26 +345,26 @@ If you are using a "multiple" select menu, PyBlade Live works as expected. In th
 
 ### Going deeper
 
-For a more complete documentation on using `pb-model` in the context of HTML forms, visit the [PyBlade Live forms documentation](/docs/live/forms) page.
+For a more complete documentation on using `pb:model` in the context of HTML forms, visit the [PyBlade Live forms documentation](/live-components/forms) page.
 
 
-## pb-loading
+## pb:loading
 
 Loading indicators are an important part of crafting good user interfaces. They give users visual feedback when a request is being made to the server, so they know they are waiting for a process to complete.
 
 ### Basic usage
 
-PyBlade Live provides a simple yet extremely powerful syntax for controlling loading indicators: `pb-loading`. Adding `pb-loading` to any element will hide it by default (using `display: none` in CSS) and show it when a request is sent to the server.
+PyBlade Live provides a simple yet extremely powerful syntax for controlling loading indicators: `pb:loading`. Adding `pb:loading` to any element will hide it by default (using `display: none` in CSS) and show it when a request is sent to the server.
 
-Below is a basic example of a `PostCreate` component's form with `pb-loading` being used to toggle a loading message:
+Below is a basic example of a `PostCreate` component's form with `pb:loading` being used to toggle a loading message:
 
 ```html
-<form pb-submit="save">
+<form pb:submit="save">
     <!-- ... -->
 
     <button type="submit">Save</button>
 
-    <div pb-loading> <!-- [!code highlight:2] -->
+    <div pb:loading> <!-- [!code highlight:2] -->
         Saving post...
     </div>
 </form>
@@ -377,12 +377,12 @@ When a user presses "Save", the "Saving post..." message will appear below the b
 Alternatively, you can append `.remove` for the inverse effect, showing an element by default and hiding it during requests to the server:
 
 ```html
-<form pb-submit="save">
+<form pb:submit="save">
     <!-- ... -->
 
     <button type="submit">
-        <span pb-loading.remove>Save</span>
-        <span pb-loading>Saving post...</span>
+        <span pb:loading.remove>Save</span>
+        <span pb:loading>Saving post...</span>
     </button>
 </form>
 ```
@@ -394,13 +394,13 @@ In addition to toggling the visibility of entire elements, it's often useful to 
 Below is a simple example of using the [Tailwind](https://tailwindcss.com/) class `opacity-50` to make the "Save" button fainter while the form is being submitted:
 
 ```html
-<button pb-loading.class="opacity-50">Save</button>
+<button pb:loading.class="opacity-50">Save</button>
 ```
 
-Like toggling an element, you can perform the inverse class operation by appending `.remove` to the `pb-loading` directive. In the example below, the button's `bg-blue-500` class will be removed when the "Save" button is pressed:
+Like toggling an element, you can perform the inverse class operation by appending `.remove` to the `pb:loading` directive. In the example below, the button's `bg-blue-500` class will be removed when the "Save" button is pressed:
 
 ```html
-<button class="bg-blue-500" pb-loading.class.remove="bg-blue-500">
+<button class="bg-blue-500" pb:loading.class.remove="bg-blue-500">
     Save
 </button>
 ```
@@ -414,34 +414,34 @@ However, in addition to this default behavior, PyBlade Live offers the `.attr` m
 ```html
 <button
     type="button"
-    pb-click="remove"
-    pb-loading.attr="disabled"
+    pb:click="remove"
+    pb:loading.attr="disabled"
 >
     Remove
 </button>
 ```
 
-Because the button above isn't a submit button, it won't be disabled by PyBlade Live's default form handling behavior when pressed. Instead, we manually added `pb-loading.attr="disabled"` to achieve this behavior.
+Because the button above isn't a submit button, it won't be disabled by PyBlade Live's default form handling behavior when pressed. Instead, we manually added `pb:loading.attr="disabled"` to achieve this behavior.
 
 ### Targeting specific actions
 
-By default, `pb-loading` will be triggered whenever a component makes a request to the server.
+By default, `pb:loading` will be triggered whenever a component makes a request to the server.
 
 However, in components with multiple elements that can trigger server requests, you should scope your loading indicators down to individual actions.
 
 For example, consider the following "Save post" form. In addition to a "Save" button that submits the form, there might also be a "Remove" button that executes a "remove" action on the component.
 
-By adding `pb-target` to the following `pb-loading` element, you can instruct PyBlade Live to only show the loading message when the "Remove" button is clicked:
+By adding `pb:target` to the following `pb:loading` element, you can instruct PyBlade Live to only show the loading message when the "Remove" button is clicked:
 
 ```html
-<form pb-submit="save">
+<form pb:submit="save">
     <!-- ... -->
 
     <button type="submit">Save</button>
 
-    <button type="button" pb-click="remove">Remove</button>
+    <button type="button" pb:click="remove">Remove</button>
 
-    <div pb-loading pb-target="remove">  <!-- [!code highlight:2] -->
+    <div pb:loading pb:target="remove">  <!-- [!code highlight:2] -->
         Removing post...
     </div>
 </form>
@@ -451,19 +451,19 @@ When the above "Remove" button is pressed, the "Removing post..." message will b
 
 ### Targeting multiple actions
 
-You may find yourself in a situation where you would like `pb-loading` to react to some, but not all, actions on a page. In these cases you can pass multiple actions into `pb-target` separated by a comma. For example:
+You may find yourself in a situation where you would like `pb:loading` to react to some, but not all, actions on a page. In these cases you can pass multiple actions into `pb:target` separated by a comma. For example:
 
 ```html
-<form pb-submit="save">
-    <input type="text" pb-model.blur="title">
+<form pb:submit="save">
+    <input type="text" pb:model.blur="title">
 
     <!-- ... -->
 
     <button type="submit">Save</button>
 
-    <button type="button" pb-click="remove">Remove</button>
+    <button type="button" pb:click="remove">Remove</button>
 
-    <div pb-loading pb-target="save, remove">  <!-- [!code highlight:2] -->
+    <div pb:loading pb:target="save, remove">  <!-- [!code highlight:2] -->
         Updating post...
     </div>
 </form>
@@ -473,17 +473,17 @@ The loading indicator ("Updating post...") will now only be shown when the "Remo
 
 ### Targeting action parameters
 
-In situations where the same action is triggered with different parameters from multiple places on a page, you can further scope `pb-target` to a specific action by passing in additional parameters. For example, consider the following scenario where a "Remove" button exists for each post on the page:
+In situations where the same action is triggered with different parameters from multiple places on a page, you can further scope `pb:target` to a specific action by passing in additional parameters. For example, consider the following scenario where a "Remove" button exists for each post on the page:
 
 ```html
 <div>
     @for(post in posts)
-        <div pb-key="{{ post.id }}">
+        <div pb:key="{{ post.id }}">
             <h2>{{ post.title }}</h2>
 
-            <button pb-click="remove({{ post.id }})">Remove</button>
+            <button pb:click="remove({{ post.id }})">Remove</button>
 
-            <div pb-loading pb-target="remove({{ post.id }})">  <!-- [! highlight:2] -->
+            <div pb:loading pb:target="remove({{ post.id }})">  <!-- [! highlight:2] -->
                 Removing post...
             </div>
         </div>
@@ -491,26 +491,26 @@ In situations where the same action is triggered with different parameters from 
 </div>
 ```
 
-Without passing `{{ post.id }}` to `pb-target="remove"`, the "Removing post..." message would show when any of the buttons on the page are clicked.
+Without passing `{{ post.id }}` to `pb:target="remove"`, the "Removing post..." message would show when any of the buttons on the page are clicked.
 
-However, because we are passing in unique parameters to each instance of `pb-target`, PyBlade Live will only show the loading message when the matching parameters are passed to the "remove" action.
+However, because we are passing in unique parameters to each instance of `pb:target`, PyBlade Live will only show the loading message when the matching parameters are passed to the "remove" action.
 
 <Callout type="warn" title={"Multiple action parameters aren't supported"}>
-At this time, PyBlade Live only supports targeting a loading indicator by a single method/parameter pair. For example `pb-target="remove(1)"` is supported, however `pb-target="remove(1), add(1)"` is not.
+At this time, PyBlade Live only supports targeting a loading indicator by a single method/parameter pair. For example `pb:target="remove(1)"` is supported, however `pb:target="remove(1), add(1)"` is not.
 </Callout>
 
 ### Targeting property updates
 
-PyBlade Live also allows you to target specific component property updates by passing the property's name to the `pb-target` directive.
+PyBlade Live also allows you to target specific component property updates by passing the property's name to the `pb:target` directive.
 
-Consider the following example where a form input named `username` uses `pb-model.live` for real-time validation as a user types:
+Consider the following example where a form input named `username` uses `pb:model.live` for real-time validation as a user types:
 
 ```html
-<form pb-submit="save">
-    <input type="text" pb-model.live="username">
+<form pb:submit="save">
+    <input type="text" pb:model.live="username">
     @error('username') <span>{{ message }}</span> @enderror
 
-    <div pb-loading pb-target="username"> <!-- [!code highlight:2] -->
+    <div pb:loading pb:target="username"> <!-- [!code highlight:2] -->
         Checking availability of username...
     </div>
 
@@ -522,43 +522,43 @@ The "Checking availability..." message will show when the server is updated with
 
 ### Excluding specific loading targets
 
-Sometimes you may wish to display a loading indicator for every PyBlade Live request _except_ a specific property or action. In these cases you can use the `pb-target.except` modifier like so:
+Sometimes you may wish to display a loading indicator for every PyBlade Live request _except_ a specific property or action. In these cases you can use the `pb:target.except` modifier like so:
 
 ```html
-<div pb-loading pb-target.except="download">...</div>
+<div pb:loading pb:target.except="download">...</div>
 ```
 
 The above loading indicator will now be shown for every PyBlade Live update request on the component _except_ the "download" action.
 
 ### Customizing CSS display property
 
-When `pb-loading` is added to an element, PyBlade Live updates the CSS `display` property of the element to show and hide the element. By default, PyBlade Live uses `none` to hide and `inline-block` to show.
+When `pb:loading` is added to an element, PyBlade Live updates the CSS `display` property of the element to show and hide the element. By default, PyBlade Live uses `none` to hide and `inline-block` to show.
 
-If you are toggling an element that uses a display value other than `inline-block`, like `flex` in the following example, you can append `.flex` to `pb-loading`:
+If you are toggling an element that uses a display value other than `inline-block`, like `flex` in the following example, you can append `.flex` to `pb:loading`:
 
 ```html
-<div class="flex" pb-loading.flex>...</div>
+<div class="flex" pb:loading.flex>...</div>
 ```
 
 Below is the complete list of available display values:
 
 ```html
-<div pb-loading.inline-flex>...</div>
-<div pb-loading.inline>...</div>
-<div pb-loading.block>...</div>
-<div pb-loading.table>...</div>
-<div pb-loading.flex>...</div>
-<div pb-loading.grid>...</div>
+<div pb:loading.inline-flex>...</div>
+<div pb:loading.inline>...</div>
+<div pb:loading.block>...</div>
+<div pb:loading.table>...</div>
+<div pb:loading.flex>...</div>
+<div pb:loading.grid>...</div>
 ```
 
 ### Delaying a loading indicator
 
 On fast connections, updates often happen so quickly that loading indicators only flash briefly on the screen before being removed. In these cases, the indicator is more of a distraction than a helpful affordance.
 
-For this reason, PyBlade Live provides a `.delay` modifier to delay the showing of an indicator. For example, if you add `pb-loading.delay` to an element like so:
+For this reason, PyBlade Live provides a `.delay` modifier to delay the showing of an indicator. For example, if you add `pb:loading.delay` to an element like so:
 
 ```html
-<div pb-loading.delay>...</div>
+<div pb:loading.delay>...</div>
 ```
 
 The above element will only appear if the request takes over 200 milliseconds. The user will never see the indicator if the request completes before then.
@@ -566,28 +566,28 @@ The above element will only appear if the request takes over 200 milliseconds. T
 To customize the amount of time to delay the loading indicator, you can use one of PyBlade Live's helpful interval aliases:
 
 ```html
-<div pb-loading.delay.shortest>...</div> <!-- 50ms -->
-<div pb-loading.delay.shorter>...</div>  <!-- 100ms -->
-<div pb-loading.delay.short>...</div>    <!-- 150ms -->
-<div pb-loading.delay>...</div>          <!-- 200ms -->
-<div pb-loading.delay.long>...</div>     <!-- 300ms -->
-<div pb-loading.delay.longer>...</div>   <!-- 500ms -->
-<div pb-loading.delay.longest>...</div>  <!-- 1000ms -->
+<div pb:loading.delay.shortest>...</div> <!-- 50ms -->
+<div pb:loading.delay.shorter>...</div>  <!-- 100ms -->
+<div pb:loading.delay.short>...</div>    <!-- 150ms -->
+<div pb:loading.delay>...</div>          <!-- 200ms -->
+<div pb:loading.delay.long>...</div>     <!-- 300ms -->
+<div pb:loading.delay.longer>...</div>   <!-- 500ms -->
+<div pb:loading.delay.longest>...</div>  <!-- 1000ms -->
 ```
 
-## pb-navigate
+## pb:navigate
 
-PyBlade Live's `pb-navigate` feature makes page navigation much faster, providing an SPA-like experience for your users.
+PyBlade Live's `pb:navigate` feature makes page navigation much faster, providing an SPA-like experience for your users.
 
-This page is a simple reference for the `pb-navigate` directive. Be sure to read the page on PyBlade Live's [Navigation](/docs/live/features/navigation) feature for more complete documentation.
+This page is a simple reference for the `pb:navigate` directive. Be sure to read the page on PyBlade Live's [Navigation](/live-components/features/navigation) feature for more complete documentation.
 
-Below is a simple example of adding `pb-navigate` to links in a nav bar:
+Below is a simple example of adding `pb:navigate` to links in a nav bar:
 
 ```html
 <nav>
-    <a href="/" pb-navigate>Dashboard</a>
-    <a href="/posts" pb-navigate>Posts</a>
-    <a href="/users" pb-navigate>Users</a>
+    <a href="/" pb:navigate>Dashboard</a>
+    <a href="/posts" pb:navigate>Posts</a>
+    <a href="/users" pb:navigate>Users</a>
 </nav>
 ```
 
@@ -598,72 +598,72 @@ When any of these links are clicked, PyBlade Live will intercept the click and, 
 By adding the `.hover` modifier, PyBlade Live will pre-fetch a page when a user hovers over a link. This way, the page will have already been downloaded from the server when the user clicks on the link.
 
 ```html
-<a href="/" pb-navigate.hover>Dashboard</a>
+<a href="/" pb:navigate.hover>Dashboard</a>
 ```
 
 ### Going deeper
 
-For more complete documentation on this feature, visit [PyBlade Live's navigation](/docs/live/features/navigation) documentation page.
+For more complete documentation on this feature, visit [PyBlade Live's navigation](/live-components/features/navigation) documentation page.
 
-## pb-current
+## pb:current
 
-The `pb-current` directive allows you to easily detect and style currently active links on a page.
+The `pb:current` directive allows you to easily detect and style currently active links on a page.
 
-Here's a simple example of adding `pb-current` to links in a navbar so that the currently active link has a stronger font weight:
+Here's a simple example of adding `pb:current` to links in a navbar so that the currently active link has a stronger font weight:
 
 ```html
 <nav>
-    <a href="/dashboard" ... pb-current="font-bold text-zinc-800">Dashboard</a>
-    <a href="/posts" ... pb-current="font-bold text-zinc-800">Posts</a>
-    <a href="/users" ... pb-current="font-bold text-zinc-800">Users</a>
+    <a href="/dashboard" ... pb:current="font-bold text-zinc-800">Dashboard</a>
+    <a href="/posts" ... pb:current="font-bold text-zinc-800">Posts</a>
+    <a href="/users" ... pb:current="font-bold text-zinc-800">Users</a>
 </nav>
 ```
 
 Now when a user visits `/posts`, the "Posts" link will have a stronger font treatment than the other links.
 
-You should note that `pb-current` works out of the box with `pb-navigate` links and page changes.
+You should note that `pb:current` works out of the box with `pb:navigate` links and page changes.
 
 
 ### Troubleshooting
 
-If `pb-current` is not detecting the current link correctly, ensure the following:
+If `pb:current` is not detecting the current link correctly, ensure the following:
 
 * You have at least one PyBlade Live component on the page, or have hardcoded `@liveblade_scripts` in your layout
 * You have a `href` attribute on the link.
 
-## pb-cloak
+## pb:cloak
 
-`pb-cloak` is a directive that hides elements on page load until PyBlade Live is fully initialized. This is useful for preventing the "flash of unstyled content" that can occur when the page loads before PyBlade Live has a chance to initialize.
+`pb:cloak` is a directive that hides elements on page load until PyBlade Live is fully initialized. This is useful for preventing the "flash of unstyled content" that can occur when the page loads before PyBlade Live has a chance to initialize.
 
 ### Basic usage
 
-To use `pb-cloak`, add the directive to any element you want to hide during page load:
+To use `pb:cloak`, add the directive to any element you want to hide during page load:
 
 ```html
-<div pb-cloak>
+<div pb:cloak>
     This content will be hidden until PyBlade Live is fully loaded
 </div>
 ```
 
 ### Dynamic content
 
-`pb-cloak` is particularly useful in scenarios where you want to prevent users from seeing uninitialized dynamic content such as element shown or hidden using `pb-show`.
+`pb:cloak` is particularly useful in scenarios where you want to prevent users from seeing uninitialized dynamic content such as element shown or hidden using `pb:show`.
 
 ```html
 <div>
-    <div pb-show="starred" pb-cloak>
+    <div pb:show="starred" pb:cloak>
         <!-- Yellow star icon... -->
     </div>
 
-    <div pb-show="!starred" pb-cloak>
+    <div pb:show="!starred" pb:cloak>
         <!-- Gray star icon... -->
     </div>
 </div>
 ```
 
-In the above example, without `pb-cloak`, both icons would be shown before PyBlade Live initializes. However, with `pb-cloak`, both elements will be hidden until initialization.
+In the above example, without `pb:cloak`, both icons would be shown before PyBlade Live initializes. However, with `pb:cloak`, both elements will be hidden until initialization.
 
-## pb-dirty
+## pb:dirty
 
 In a traditional HTML page containing a form, the form is only ever submitted when the user presses the "Submit" button.
 
@@ -675,47 +675,47 @@ When a form contains un-saved input, that form is considered "dirty". It only be
 
 ### Basic usage
 
-PyBlade Live allows you to easily toggle visual elements on the page using the `pb-dirty` directive.
+PyBlade Live allows you to easily toggle visual elements on the page using the `pb:dirty` directive.
 
-By adding `pb-dirty` to an element, you are instructing PyBlade Live to only show the element when the client-side state diverges from the server-side state.
+By adding `pb:dirty` to an element, you are instructing PyBlade Live to only show the element when the client-side state diverges from the server-side state.
 
 To demonstrate, here is an example of an `UpdatePost` form containing a visual "Unsaved changes..." indication that signals to the user that the form contains input that has not been saved:
 
 ```html
-<form pb-submit="update">
-    <input type="text" pb-model="title">
+<form pb:submit="update">
+    <input type="text" pb:model="title">
 
     <!-- ... -->
 
     <button type="submit">Update</button>
 
-    <div pb-dirty>Unsaved changes...</div> <!-- [!code highlight] -->
+    <div pb:dirty>Unsaved changes...</div> <!-- [!code highlight] -->
 </form>
 ```
 
-Because `pb-dirty` has been added to the "Unsaved changes..." message, the message will be hidden by default. PyBlade Live will automatically display the message when the user starts modifying the form inputs.
+Because `pb:dirty` has been added to the "Unsaved changes..." message, the message will be hidden by default. PyBlade Live will automatically display the message when the user starts modifying the form inputs.
 
 When the user submits the form, the message will disappear again, since the server / client data is back in sync.
 
 ### Removing elements
 
-By adding the `.remove` modifier to `pb-dirty`, you can instead show an element by default and only hide it when the component has "dirty" state:
+By adding the `.remove` modifier to `pb:dirty`, you can instead show an element by default and only hide it when the component has "dirty" state:
 
 ```html
-<div pb-dirty.remove>The data is in-sync...</div>
+<div pb:dirty.remove>The data is in-sync...</div>
 ```
 
 ### Targeting property updates
 
-Imagine you are using `pb-model.blur` to update a property on the server immediately after a user leaves an input field. In this scenario, you can provide a "dirty" indication for only that property by adding `pb-target` to the element that contains the `pb-dirty` directive.
+Imagine you are using `pb:model.blur` to update a property on the server immediately after a user leaves an input field. In this scenario, you can provide a "dirty" indication for only that property by adding `pb:target` to the element that contains the `pb:dirty` directive.
 
 Here is an example of only showing a dirty indication when the title property has been changed:
 
 ```html
-<form pb-submit="update">
-    <input pb-model.blur="title">
+<form pb:submit="update">
+    <input pb:model.blur="title">
 
-    <div pb-dirty pb-target="title">Unsaved title...</div> <!-- [!code highlight] -->
+    <div pb:dirty pb:target="title">Unsaved title...</div> <!-- [!code highlight] -->
 
     <button type="submit">Update</button>
 </form>
@@ -728,23 +728,23 @@ Often, instead of toggling entire elements, you may want to toggle individual CS
 Below is an example where a user types into an input field and the border becomes yellow, indicating an "unsaved" state. Then, when the user tabs away from the field, the border is removed, indicating that the state has been saved on the server:
 
 ```html
-<input pb-model.blur="title" pb-dirty.class="border-yellow-500">
+<input pb:model.blur="title" pb:dirty.class="border-yellow-500">
 ```
 
 
-## pb-confirm
+## pb:confirm
 
 Before performing dangerous actions in PyBlade Live, you may want to provide your users with some sort of visual confirmation.
 
-PyBlade Live makes this easy to do by adding `pb-confirm` in addition to any action (`pb-click`, `pb-submit`, etc.).
+PyBlade Live makes this easy to do by adding `pb:confirm` in addition to any action (`pb:click`, `pb:submit`, etc.).
 
 Here's an example of adding a confirmation dialog to a "Delete post" button:
 
 ```html
 <button
     type="button"
-    pb-click="delete"
-    pb-confirm="Are you sure you want to delete this post?"
+    pb:click="delete"
+    pb:confirm="Are you sure you want to delete this post?"
 >
     Delete post <!-- [!code highlight] -->
 </button>
@@ -780,18 +780,18 @@ class PostDelete(Component):
 ```
 
 ```html
-<button pb-click="delete" class="btn btn-danger">
+<button pb:click="delete" class="btn btn-danger">
     Delete Post
 </button>
 ```
 
 This is ideal for destructive actions like deleting users, posts, or clearing data.
 
-## pb-transition
+## pb:transition
 
 ### Basic usage
 
-Showing or hiding content in PyBlade Live is as simple as using one of PyBlade's conditional directives like `@if`. To enhance this experience for your users, PyBlade Live provides a `pb-transition` directive that allows you to transition conditional elements smoothly in and out of the page.
+Showing or hiding content in PyBlade Live is as simple as using one of PyBlade's conditional directives like `@if`. To enhance this experience for your users, PyBlade Live provides a `pb:transition` directive that allows you to transition conditional elements smoothly in and out of the page.
 
 For example, below is a `PostDetail` component with the ability to toggle viewing comments on and off:
 
@@ -809,10 +809,10 @@ class PostDetail(LiveComponent):
 <div>
     <!-- ... -->
 
-    <button pb-click="set('show_comments', True)">Show comments</button>
+    <button pb:click="set('show_comments', True)">Show comments</button>
 
     @if (show_comments)
-        <div pb-transition> <!-- [!code highlight] -->
+        <div pb:transition> <!-- [!code highlight] -->
             @for (comment in post.comments)
                 <!-- ... -->
             @endfor
@@ -820,36 +820,36 @@ class PostDetail(LiveComponent):
     @endif
 </div>
 ```
-Because `pb-transition` has been added to the `<div>` containing the post's comments, when the "Show comments" button is pressed, `show_comments` will be set to `True` and the comments will "fade" onto the page instead of abruptly appearing.
+Because `pb:transition` has been added to the `<div>` containing the post's comments, when the "Show comments" button is pressed, `show_comments` will be set to `True` and the comments will "fade" onto the page instead of abruptly appearing.
 
 ### Limitations
 
-Currently, `pb-transition` is only supported on a single element inside a PyBlade conditional like `@if`. It will not work as expected when used in a list of sibling elements. For example, the following will NOT work properly:
+Currently, `pb:transition` is only supported on a single element inside a PyBlade conditional like `@if`. It will not work as expected when used in a list of sibling elements. For example, the following will NOT work properly:
 
 ```html
 <!-- Warning: The following is code that will not work properly -->
 <ul>
     @for (commnet in comments)
-        <li pb-transition pb-key="{{ comment.id }}">{{ comment.content }}</li>
+        <li pb:transition pb:key="{{ comment.id }}">{{ comment.content }}</li>
     @endfor
 </ul>
 ```
 
-If one of the above comment `<li>` elements were to get removed, you would expect PyBlade Live to transition it out. However, because of hurdles with PyBlade Live's underlying "morph" mechanism, this will not be the case. There is currently no way to transition dynamic lists in PyBlade Live using `pb-transition`.
+If one of the above comment `<li>` elements were to get removed, you would expect PyBlade Live to transition it out. However, because of hurdles with PyBlade Live's underlying "morph" mechanism, this will not be the case. There is currently no way to transition dynamic lists in PyBlade Live using `pb:transition`.
 
 ### Default transition style
 
-By default, PyBlade Live applies both an opacity and a scale CSS transition to elements with `pb-transition`. Here's a visual preview:
+By default, PyBlade Live applies both an opacity and a scale CSS transition to elements with `pb:transition`. Here's a visual preview:
 
 ```html
-<div pb-data="{ show: false }" pb-cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
+<div pb-data="{ show: false }" pb:cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
     <a href="#" pb-on:click.prevent="show = ! show" class="py-2.5 outline-none">
-        Preview transition <span pb-text="show ? 'out' : 'in →'">in</span>
+        Preview transition <span pb:text="show ? 'out' : 'in →'">in</span>
     </a>
     <div class="hey">
         <div
-            pb-show="show"
-            pb-transition
+            pb:show="show"
+            pb:transition
             class="inline-flex px-16 py-2.5 rounded-[10px] bg-pink-400 text-white uppercase font-medium transition focus-visible:outline-none focus-visible:!ring-1 focus-visible:!ring-white"
             style="
                 background: linear-gradient(109.48deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%), #EE5D99;
@@ -893,18 +893,18 @@ Below is a list of various transition combinations that may help to better visua
 By default, PyBlade Live both fades and scales the element when transitioning. You can disable scaling and only fade by adding the `.opacity` modifier. This is useful for things like transitioning a full-page overlay, where adding a scale doesn't make sense.
 
 ```html
-<div pb-transition.opacity>
+<div pb:transition.opacity>
 ```
 
 ```html
-<div pb-data="{ show: false }" pb-cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
+<div pb-data="{ show: false }" pb:cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
     <a href="#" pb-on:click.prevent="show = ! show" class="py-2.5 outline-none">
-        Preview transition <span pb-text="show ? 'out' : 'in →'">in</span>
+        Preview transition <span pb:text="show ? 'out' : 'in →'">in</span>
     </a>
     <div class="hey">
         <div
-            pb-show="show"
-            pb-transition.opacity
+            pb:show="show"
+            pb:transition.opacity
             class="inline-flex px-16 py-2.5 rounded-[10px] bg-pink-400 text-white uppercase font-medium transition focus-visible:outline-none focus-visible:!ring-1 focus-visible:!ring-white"
             style="
                 background: linear-gradient(109.48deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%), #EE5D99;
@@ -922,17 +922,17 @@ By default, PyBlade Live both fades and scales the element when transitioning. Y
 A common transition technique is to show an element immediately when transitioning in, and fade its opacity when transitioning out. You'll notice this effect on most native MacOS dropdowns and menus. Therefore it's commonly applied on the web to dropdowns, popovers, and menus.
 
 ```html
-<div pb-transition.out.opacity.duration.200ms>
+<div pb:transition.out.opacity.duration.200ms>
 ```
 ```html
-<div pb-data="{ show: false }" pb-cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
+<div pb-data="{ show: false }" pb:cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
     <a href="#" pb-on:click.prevent="show = ! show" class="py-2.5 outline-none">
-        Preview transition <span pb-text="show ? 'out' : 'in →'">in</span>
+        Preview transition <span pb:text="show ? 'out' : 'in →'">in</span>
     </a>
     <div class="hey">
         <div
-            pb-show="show"
-            pb-transition.out.opacity.duration.200ms
+            pb:show="show"
+            pb:transition.out.opacity.duration.200ms
             class="inline-flex px-16 py-2.5 rounded-[10px] bg-pink-400 text-white uppercase font-medium transition focus-visible:outline-none focus-visible:!ring-1 focus-visible:!ring-white"
             style="
                 background: linear-gradient(109.48deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%), #EE5D99;
@@ -950,18 +950,18 @@ A common transition technique is to show an element immediately when transitioni
 When using PyBlade Live to transition an element such as a dropdown menu, it makes sense to scale in from the top of the menu as the origin, rather than center (PyBlade Live's default). This way the menu feels visually anchored to the element that triggered it.
 
 ```html
-<div pb-transition.scale.origin.top>
+<div pb:transition.scale.origin.top>
 ```
 
 ```html
-<div pb-data="{ show: false }" pb-cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
+<div pb-data="{ show: false }" pb:cloak class="border border-gray-700 rounded-xl p-6 w-full flex justify-between">
     <a href="#" pb-on:click.prevent="show = ! show" class="py-2.5 outline-none">
-        Preview transition <span pb-text="show ? 'out' : 'in →'">in</span>
+        Preview transition <span pb:text="show ? 'out' : 'in →'">in</span>
     </a>
     <div class="hey">
         <div
-            pb-show="show"
-            pb-transition.origin.top
+            pb:show="show"
+            pb:transition.origin.top
             class="inline-flex px-16 py-2.5 rounded-[10px] bg-pink-400 text-white uppercase font-medium transition focus-visible:outline-none focus-visible:!ring-1 focus-visible:!ring-white"
             style="
                 background: linear-gradient(109.48deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%), #EE5D99;
@@ -974,13 +974,13 @@ When using PyBlade Live to transition an element such as a dropdown menu, it mak
 </div>
 ```
 
-## pb-poll
+## pb:poll
 Polling is a technique used in web applications to "poll" the server (send requests on a regular interval) for updates. It's a simple way to keep a page up-to-date without the need for a more sophisticated technology like [WebSockets](#).
 
 
 ### Basic usage
 
-Using polling inside PyBlade Live is as simple as adding `pb-poll` to an element.
+Using polling inside PyBlade Live is as simple as adding `pb:poll` to an element.
 
 Below is an example of a `SubscriberCount` component that shows a user's subscriber count:
 
@@ -991,23 +991,23 @@ class SubscriberCount(LiveComponent):
 
     def render(self):
         user = auth()
-        return self.view('live.subscriber-count', [
+        return self.render_template('live.subscriber-count', [
             'count' => user.subscribers.count(),
         ]);
 ```
 
 ```html
-<div pb-poll> <!-- [!code highlight] -->
+<div pb:poll> <!-- [!code highlight] -->
     Subscribers: {{ count }}
 </div>
 ```
 
-Normally, this component would show the subscriber count for the user and never update until the page was refreshed. However, because of `pb-poll` on the component's template, this component will now refresh itself every `2.5` seconds, keeping the subscriber count up-to-date.
+Normally, this component would show the subscriber count for the user and never update until the page was refreshed. However, because of `pb:poll` on the component's template, this component will now refresh itself every `2.5` seconds, keeping the subscriber count up-to-date.
 
-You can also specify an action to fire on the polling interval by passing a value to `pb-poll`:
+You can also specify an action to fire on the polling interval by passing a value to `pb:poll`:
 
 ```html
-<div pb-poll="refresh_subscribers">
+<div pb:poll="refresh_subscribers">
     Subscribers: {{ count }}
 </div>
 ```
@@ -1024,66 +1024,66 @@ The best way to reduce requests in this scenario is simply to make the polling i
 Please checkout the PyBlade Live's [Security concerns](#) before using this feature as it may lead to some security risks when misused.
 </Callout>
 
-You can manually control how often the component will poll by appending the desired duration to `pb-poll` like so:
+You can manually control how often the component will poll by appending the desired duration to `pb:poll` like so:
 
 ```html
-<div pb-poll.15s> <!-- In seconds... -->
+<div pb:poll.15s> <!-- In seconds... -->
 
-<div pb-poll.15000ms> <!-- In milliseconds... -->
+<div pb:poll.15000ms> <!-- In milliseconds... -->
 ```
 
 ### Background throttling
 
 To further cut down on server requests, PyBlade Live automatically throttles polling when a page is in the background. For example, if a user keeps a page open in a different browser tab, PyBlade Live will reduce the number of polling requests by 95% until the user revisits the tab.
 
-If you want to opt-out of this behavior and keep polling continuously, even when a tab is in the background, you can add the `.keep-alive` modifier to `pb-poll`:
+If you want to opt-out of this behavior and keep polling continuously, even when a tab is in the background, you can add the `.keep-alive` modifier to `pb:poll`:
 
 ```html
-<div pb-poll.keep-alive>
+<div pb:poll.keep-alive>
 ```
 
 ###  Viewport throttling
 
-Another measure you can take to only poll when necessary, is to add the `.visible` modifier to `pb-poll`. The `.visible` modifier instructs PyBlade Live to only poll the component when it is visible on the page:
+Another measure you can take to only poll when necessary, is to add the `.visible` modifier to `pb:poll`. The `.visible` modifier instructs PyBlade Live to only poll the component when it is visible on the page:
 
 ```html
-<div pb-poll.visible>
+<div pb:poll.visible>
 ```
 
-If a component using `pb-visible` is at the bottom of a long page, it won't start polling until the user scrolls it into the viewport. When the user scrolls away, it will stop polling again.
+If a component using `pb:visible` is at the bottom of a long page, it won't start polling until the user scrolls it into the viewport. When the user scrolls away, it will stop polling again.
 
-## pb-offline
+## pb:offline
 
 In certain circumstances it can be helpful for your users to know if they are currently connected to the internet.
 
 If for example, you have built a blogging platform on PyBlade Live, you may want to notify your users in some way if they are offline so that they don't draft an entire blog post without the ability for PyBlade Live to save it to the database.
 
-PyBlade Live make this trivial by providing the `pb-offline` directive. By attaching `pb-offline` to an element in your PyBlade Live component, it will be hidden by default and only be displayed when PyBlade Live detects the network connection has been interrupted and is unavailable. It will then disappear again when the network has regained connection.
+PyBlade Live make this trivial by providing the `pb:offline` directive. By attaching `pb:offline` to an element in your PyBlade Live component, it will be hidden by default and only be displayed when PyBlade Live detects the network connection has been interrupted and is unavailable. It will then disappear again when the network has regained connection.
 
 For example:
 
 ```html
-<p class="alert alert-warning" pb-offline>
+<p class="alert alert-warning" pb:offline>
     Whoops, your device has lost connection. The web page you are viewing is offline.
 </p>
 ```
 
 
-## pb-ignore
+## pb:ignore
 
 PyBlade Live's ability to make updates to the page is what makes it "live", however, there are times when you might want to prevent PyBlade Live from updating a portion of the page.
 
-In these cases, you can use the `pb-ignore` directive to instruct PyBlade Live to ignore the contents of a particular element, even if they change between requests.
+In these cases, you can use the `pb:ignore` directive to instruct PyBlade Live to ignore the contents of a particular element, even if they change between requests.
 
 This is most useful in the context of working with third-party javascript libraries for custom form inputs and such.
 
-Below is an example of wrapping an element used by a third-party library in `pb-ignore` so that PyBlade Live doesn't tamper with the HTML generated by the library:
+Below is an example of wrapping an element used by a third-party library in `pb:ignore` so that PyBlade Live doesn't tamper with the HTML generated by the library:
 
 ```html
 <form>
     <!-- ... -->
 
-    <div pb-ignore>
+    <div pb:ignore>
         <!-- This element would be reference by a -->
         <!-- third-party library for initialization... -->
         <input id="id-for-date-picker-library">
@@ -1093,30 +1093,30 @@ Below is an example of wrapping an element used by a third-party library in `pb-
 </form>
 ```
 
-You can also instruct PyBlade Live to only ignore changes to attributes of the root element rather than observing changes to its contents using `pb-ignore.attrs`.
+You can also instruct PyBlade Live to only ignore changes to attributes of the root element rather than observing changes to its contents using `pb:ignore.attrs`.
 
 ```html
-<div pb-ignore.attrs>
+<div pb:ignore.attrs>
     <!-- ... -->
 </div>
 ```
 
 
-## pb-replace
+## pb:replace
 
 PyBlade Live's DOM diffing is useful for updating existing elements on your page, but occasionally you may need to force some elements to render from scratch to reset internal state.
 
-In these cases, you can use the `pb-replace` directive to instruct PyBlade Live to skip DOM diffing on the children of an element, and instead completely replace the content with the new elements from the server.
+In these cases, you can use the `pb:replace` directive to instruct PyBlade Live to skip DOM diffing on the children of an element, and instead completely replace the content with the new elements from the server.
 
 This is most useful in the context of working with third-party javascript libraries and custom web components, or when element re-use could cause problems when keeping state.
 
-Below is an example of wrapping a web component with a shadow DOM `pb-replace` so that PyBlade Live completely replaces the element allowing the custom element to handle its own life-cycle:
+Below is an example of wrapping a web component with a shadow DOM `pb:replace` so that PyBlade Live completely replaces the element allowing the custom element to handle its own life-cycle:
 
 ```html
 <form>
     <!-- ... -->
 
-    <div pb-replace>
+    <div pb:replace>
         <!-- This custom element would have its own internal state -->
         <json-viewer>@json(some_property)</json-viewer>
     </div>
@@ -1126,24 +1126,24 @@ Below is an example of wrapping a web component with a shadow DOM `pb-replace` s
 ```
 
 
-You can also instruct PyBlade Live to replace the target element as well as all children with `pb-replace.self`.
+You can also instruct PyBlade Live to replace the target element as well as all children with `pb:replace.self`.
 
 ```html
-<div pb-data="{open: False}" pb-replace.self>
+<div pb-data="{open: False}" pb:replace.self>
   <!-- Ensure that the "open" state is reset to F alse on each render -->
 </div>
 ```
 
 
-## pb-show
+## pb:show
 
-PyBlade Live's `pb-show` directive makes it easy to show and hide elements based on the result of a boolean expression.
+PyBlade Live's `pb:show` directive makes it easy to show and hide elements based on the result of a boolean expression.
 
-The `pb-show` directive is different than using `@if` in PyBlade in that it toggles an element's visibility using CSS (`display: none`) rather than entirely removing the element from the DOM. This means the element remains in the page but is hidden, allowing for smoother transitions without requiring a server round-trip.
+The `pb:show` directive is different than using `@if` in PyBlade in that it toggles an element's visibility using CSS (`display: none`) rather than entirely removing the element from the DOM. This means the element remains in the page but is hidden, allowing for smoother transitions without requiring a server round-trip.
 
 ### Basic usage
 
-Here's a practical example of using `pb-show` to toggle a "Create Post" modal:
+Here's a practical example of using `pb:show` to toggle a "Create Post" modal:
 
 ```python
 from pyblade import LiveComponent
@@ -1162,11 +1162,11 @@ class PostCreate(LiveComponent):
 
 ```html
 <div>
-    <button pb-click="py.show_modal = True">New Post</button>
+    <button pb:click="py.show_modal = True">New Post</button>
 
-    <div pb-show="show_modal"> <!-- [!code highlight] -->
-        <form pb-submit="save">
-            <textarea pb-model="content"></textarea>
+    <div pb:show="show_modal"> <!-- [!code highlight] -->
+        <form pb:submit="save">
+            <textarea pb:model="content"></textarea>
 
             <button type="submit">Save Post</button>
         </form>
@@ -1178,15 +1178,15 @@ When the "New Post" button is clicked, the modal appears without a server roundt
 
 ### Using transitions
 
-You can combine `pb-show`  transitions to create smooth show/hide animations. Since `pb-show` only toggles the CSS `display` property, PyBlade Live's `pb-transition` directive work perfectly with it:
+You can combine `pb:show`  transitions to create smooth show/hide animations. Since `pb:show` only toggles the CSS `display` property, PyBlade Live's `pb:transition` directive work perfectly with it:
 
 ```html
 <div>
     <button pb-on:click="py.show_modal = True">New Post</button>
 
-    <div pb-show="show_modal" pb-transition.duration.500ms>
-        <form pb-submit="save">
-            <textarea pb-model="content"></textarea>
+    <div pb:show="show_modal" pb:transition.duration.500ms>
+        <form pb:submit="save">
+            <textarea pb:model="content"></textarea>
             <button type="submit">Save Post</button>
         </form>
     </div>
@@ -1195,14 +1195,14 @@ You can combine `pb-show`  transitions to create smooth show/hide animations. Si
 
 The  transition classes above will create a fade and scale effect when the modal shows and hides.
 
-You can review the full [pb-transition](#pb-transition) documentation.
+You can review the full [pb:transition](#pbtransition) documentation.
 
 
-## pb-stream
+## pb:stream
 
-PyBlade Live allows you to stream content to a web page before a request is complete via the `pb-stream` API. This is an extremely useful feature for things like AI chat-bots which stream responses as they are generated.
+PyBlade Live allows you to stream content to a web page before a request is complete via the `pb:stream` API. This is an extremely useful feature for things like AI chat-bots which stream responses as they are generated.
 
-To demonstrate the most basic functionality of `pb-stream`, below is a simple CountDown component that when a button is pressed displays a count-down to the user from `3` to `0`:
+To demonstrate the most basic functionality of `pb:stream`, below is a simple CountDown component that when a button is pressed displays a count-down to the user from `3` to `0`:
 
 ```python
 import time
@@ -1228,13 +1228,13 @@ class CountDown(LiveComponent):
             self.start -= 1
 
     def render(self):
-        return self.view("live.count-down")
+        return self.render_template("live.count-down")
 ```
 ```html
 <div>
-    <button pb-click="begin">Start count-down</button>
+    <button pb:click="begin">Start count-down</button>
 
-    <h1>Count: <span pb-stream="count">{{ start }}</span></h1> <!-- [!code highlight] -->
+    <h1>Count: <span pb:stream="count">{{ start }}</span></h1> <!-- [!code highlight] -->
 </div>
             
         
@@ -1254,16 +1254,16 @@ Here's what's happening from the system's perspective when the button is pressed
 * A request is sent to PyBlade Live to call the `begin()` method
 * The `begin()` method is called and the `while` loop begins
 * `self.stream()` is called and immediately starts a "streamed response" to the browser
-* The browser receives a streamed response with instructions to find the element in the component with `pb-stream="count"`, and replace its contents with the received payload (`3` in the case of the first streamed number)
+* The browser receives a streamed response with instructions to find the element in the component with `pb:stream="count"`, and replace its contents with the received payload (`3` in the case of the first streamed number)
 * The `time.sleep(1)` method causes the server to hang for one second
 * The `while` loop is repeated and the process of streaming a new number every second continues until the `while` condition is falsy
 * When `begin()` has finished running and all the counts have been streamed to the browser, PyBlade Live finishes it's request lifecycle, rendering the component and sending the final response to the browser
 
 ### Streaming chat-bot responses
 
-A common use-case for `pb-stream` is streaming chat-bot responses as they are received from an API that supports streamed responses (like [OpenAI's ChatGPT](https://chat.openai.com/)).
+A common use-case for `pb:stream` is streaming chat-bot responses as they are received from an API that supports streamed responses (like [OpenAI's ChatGPT](https://chat.openai.com/)).
 
-Below is an example of using `pb-stream` to accomplish a ChatGPT-like interface:
+Below is an example of using `pb:stream` to accomplish a ChatGPT-like interface:
 
 ```python
 import openai # You need to install this (pip install openai)
@@ -1295,7 +1295,7 @@ class ChatBot(LiveComponent):
                 self.stream(to="answer", content: self.answer); # [!code highlight]
 
     def render(self):
-        self.view("live.chat-bot")
+        self.render_template("live.chat-bot")
 ```
 ```html
 <div>
@@ -1311,14 +1311,14 @@ class ChatBot(LiveComponent):
 
                 <hgroup>
                     <h3>ChatBot</h3>
-                    <p pb-stream="answer">{{ answer }}</p> <!-- [!code highlight] -->
+                    <p pb:stream="answer">{{ answer }}</p> <!-- [!code highlight] -->
                 </hgroup>
             </article>
         @endif
     </section>
 
-    <form pb-submit="submit_prompt">
-        <input pb-model="prompt" type="text" placeholder="Send a message" autofocus>
+    <form pb:submit="submit_prompt">
+        <input pb:model="prompt" type="text" placeholder="Send a message" autofocus>
     </form>
 </div>
 ```
@@ -1329,7 +1329,7 @@ Here's what's going on in the above example:
 * A network request is sent to the server, sets the message to the `question` property, and clears the `prompt` property.
 * The response is sent back to the browser and the input is cleared. Because `self.js('...')` was called, a new request is triggered to the server calling the `ask()` method.
 * The `ask()` method calls on the OpenAI API and receives streamed response via the `stream=True` argument in the `openai.ChatCompletion.create()` method.
-* Each `chunk` gets streamed to the browser into the `pb-stream="answer"` element on the page, showing the answer progressively reveal itself to the user.
+* Each `chunk` gets streamed to the browser into the `pb:stream="answer"` element on the page, showing the answer progressively reveal itself to the user.
 * When the entire response is received, the PyBlade Live request finishes and the user receives the full response.
 
 ### Replace vs. append
@@ -1352,19 +1352,19 @@ Append/replace can also be specified at the target element level by appending or
 
 ```html
 <!-- Append contents... -->
-<div pb-stream="target">
+<div pb:stream="target">
 
 <!-- Replace contents...  -->
-<div pb-stream.replace="target">
+<div pb:stream.replace="target">
 ```
 
-## pb-text
+## pb:text
 
-`pb-text` is a directive that dynamically updates an element's text content based on a component property or a boolean expression. Unlike using PyBlade's `{{ }}` syntax, `pb-text` updates the content without requiring a network roundtrip to re-render the component.
+`pb:text` is a directive that dynamically updates an element's text content based on a component property or a boolean expression. Unlike using PyBlade's `{{ }}` syntax, `pb:text` updates the content without requiring a network roundtrip to re-render the component.
 
 ### Basic usage
 
-Here's an example of using `pb-text` to optimistically show updates to a PyBlade Live property without waiting for a network roundtrip.
+Here's an example of using `pb:text` to optimistically show updates to a PyBlade Live property without waiting for a network roundtrip.
 
 ```python
 from pyblade import LiveComponent
@@ -1385,12 +1385,12 @@ class PostDetail(LiveComponent):
 
 ```html
 <div>
-    <button b:click="py.likes++" pb-click="like">❤️ Like</button>
+    <button b:click="py.likes++" pb:click="like">❤️ Like</button>
 
-    Likes: <span pb-text="likes"></span>
+    Likes: <span pb:text="likes"></span>
 </div>
 ```
 
-When the button is clicked, `py.likes++` immediately updates the displayed count through `pb-text`, while `pb-click="like"` persists the change to the database in the background.
+When the button is clicked, `py.likes++` immediately updates the displayed count through `pb:text`, while `pb:click="like"` persists the change to the database in the background.
 
-This pattern makes `pb-text` perfect for building optimistic UIs in PyBlade Live.
+This pattern makes `pb:text` perfect for building optimistic UIs in PyBlade Live.

@@ -335,7 +335,7 @@ The values in the dictionary are passed to the Live Component in the same way as
 
 <Callout type="info" title="Already familiar?">
 
-If you have already read the [Passing data to components](/docs/components#passing-data-to-components) section for regular PyBlade components, the syntax here works in the same way.
+If you have already read the [Passing data to components](/components#passing-data-to-components) section for regular PyBlade components, the syntax here works in the same way.
 
 The difference is what the Live Component does with the received data.
 
@@ -540,17 +540,19 @@ Your application layout should contain a `{{ slot }}` placeholder where the full
     <title>{{ title }}</title>
     
     @pbstyles
+    @stack('styles')
 </head>
 
 <body>
     {{ slot }}
 
     @pbscripts
+    @stack('scripts')
 </body>
 </html>
 ```
 
-The layout is responsible for the common structure of your application, while the full-page component provides the content for the current page.
+The layout is responsible for the common structure of your application, while the full-page component provides the content for the current page. The two `@stack` directives are where components send the stylesheets and scripts they need: see [Scripts and styles](#scripts-and-styles).
 
 You can customize the default application layout in your `pyblade.toml` file. This is useful when your application has a different layout structure, for example:
 
@@ -630,9 +632,9 @@ The browser URL and history are also updated, so the navigation behaves like nor
 
 SPA-style navigation does not prevent each page from having its own metadata.
 
-When navigating to a new page with `pb:navigate`, PyBlade also updates the document metadata provided by the destination page, including the page title, description, and other relevant `<meta>` elements.
+When navigating to a new page with `pb:navigate`, PyBlade updates the page title to the destination page's `<title>`, and adds the stylesheets and scripts of its `<head>` that the current page doesn't have yet. Other `<meta>` elements are left as they were on the first page loaded.
 
-This means you can have navigation that feels like an SPA while still maintaining page-specific metadata and server-rendered URLs, making full-page components suitable for SEO-friendly applications.
+Every page is still a server-rendered URL: loading it directly, or letting a search engine crawl it, gives the complete page with its own metadata. This keeps full-page components suitable for SEO-friendly applications.
 
 ### Accessing route parameters
 
@@ -684,3 +686,202 @@ class TaskDetail(LiveComponent):
 If the user visits `/tasks/1/`, the value `1` is passed to the component as the `id` parameter.
 
 This makes full-page components convenient for pages that depend on route parameters, such as `/tasks/<id>/`, `/users/<id>/`, or `/products/<slug>/`.
+
+## Scripts and styles
+
+A component often needs more than its markup: a library loaded on the page, a stylesheet, or a few lines of JavaScript of its own. PyBlade gives you two directives for that. `@push` sends markup to a place in the layout, and `@script` runs JavaScript that belongs to the component.
+
+### Pushing to the layout
+
+Some markup is needed by a component but belongs elsewhere on the page. A chart component needs its charting library loaded, yet the `<script>` tag should be at the end of the `<body>`, not in the middle of the component.
+
+The layout names those places with `@stack`, as in the [application layout](#the-application-layout) above:
+
+```html title="templates/layouts/app.html"
+<head>
+    @pbstyles
+    @stack('styles') <!-- [!code highlight] -->
+</head>
+
+<body>
+    {{ slot }}
+
+    @pbscripts
+    @stack('scripts') <!-- [!code highlight] -->
+</body>
+```
+
+A component then sends markup to a stack with `@push` and `@endpush`:
+
+```html title="components/sales_chart.html"
+<div>
+    <canvas></canvas>
+</div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@endpush
+```
+
+When the page is rendered, the `<script>` tag comes out where `@stack('scripts')` is, at the end of the `<body>`. Pushed content comes out in the order it was pushed, so push a library before the code that uses it.
+
+You can push from any template rendered on the page: the page itself, a partial brought in with `@include`, a regular component or a live component, however deeply nested. A push inside an `@if` whose condition is false is not made, and content pushed to a stack the layout doesn't have goes nowhere. The name of a stack may be any expression: `@stack(name)` and `@push(name)` work with a variable too.
+
+A `@push` block may be written after the component's root element, as above. Its content is rendered in the stack, not in the component, so it doesn't count against the single root element a component must have.
+
+#### Pushed content is kept once
+
+The same content is never added to a stack twice. If the `sales_chart` component above is used three times on a page, Chart.js is still loaded **once**:
+
+```html
+<pb-sales-chart />
+<pb-sales-chart />
+<pb-sales-chart />
+```
+
+Two pushes count as the same when their rendered content is the same, ignoring the whitespace around it.
+
+<Callout type="info" title={"Coming from Laravel?"}>
+PyBlade's `@push` behaves like Laravel's `@pushOnce`. There is no separate `@pushOnce` directive: loading the same script twice on a page is almost never what you want.
+</Callout>
+
+#### Pushing after an action
+
+A live component can also push when it renders again after an action. Say a component only shows a map once the user asks for it:
+
+```python title="components/store_locator/store_locator.py"
+from pyblade import LiveComponent
+
+class StoreLocator(LiveComponent):
+    map_shown: bool = False
+
+    def show_map(self):
+        self.map_shown = True
+```
+
+```html title="components/store_locator/store_locator.html"
+<div>
+    <button pb:click="show_map">Show the map</button>
+
+    @if(map_shown)
+        <div id="map"></div>
+
+        @push('scripts')
+        <script src="/static/js/maps.js"></script>
+        @endpush
+    @endif
+</div>
+```
+
+The component is rendered again without the layout around it, so there is no stack for the script to land in. PyBlade sends what the component pushed along with its new markup, and adds to the page's `scripts` stack whatever the page doesn't hold yet. The script is added once and runs, however many times the button is clicked.
+
+Pushes also follow the user across pages: see [Navigation](/live-components/features/navigation#pushed-content).
+
+### Running JavaScript with `@script`
+
+A plain `<script>` tag inside a live component is rendered like the rest of its markup, but the browser only runs it when the page loads. When the component updates after an action, the new markup is put in place without running any script in it, and the script has no way to reach its component.
+
+Write the component's JavaScript between `@script` and `@endscript` instead, usually after the root element:
+
+```python title="components/counter/counter.py"
+from pyblade import LiveComponent
+
+class Counter(LiveComponent):
+    count: int = 0
+
+    def increment(self):
+        self.count += 1
+```
+
+```html title="components/counter/counter.html"
+<div>
+    <h1>{{ count }}</h1>
+    <button pb:click="increment">+</button>
+</div>
+
+@script
+<script>
+    $pb.$watch('count', (now, before) => {
+        console.log(`The count went from ${before} to ${now}`);
+    });
+</script>
+@endscript
+```
+
+Inside the script, `$pb` is the component: here, the script asks to be told whenever `count` changes. A `@script` written after the root element is moved inside it when the component renders, so it still belongs to the component.
+
+#### When a script runs
+
+A `@script` runs **once each time its component comes onto the page**:
+
+- when the page is loaded,
+- when the user navigates to a page with the component, using `pb:navigate`,
+- when a [lazy](/live-components/features/lazy-loading) component finishes loading,
+- when a parent component's update brings the component in.
+
+It does **not** run again when the component updates, so a script that sets up a listener or a chart does so once.
+
+A `@script` written inside an `@if` runs the first time its markup comes onto the page:
+
+```html
+<div>
+    <button pb:click="show_chart">Show the chart</button>
+
+    @if(chart_shown)
+        <canvas></canvas>
+
+        @script
+        <script>
+            new Chart($pb.$el.querySelector('canvas'), { type: 'bar', data: {...} });
+        </script>
+        @endscript
+    @endif
+</div>
+```
+
+Values written with `{{ }}` inside a script are rendered like anywhere else in the template, and a script that has run doesn't run again because such a value changed. The code runs inside an `async` function, so you may use `await` directly.
+
+To load a library a script needs, [push it to a stack](#pushing-to-the-layout) next to the script rather than writing a `<script src>` in the component: it is then loaded once per page, however many components need it.
+
+### The `$pb` object
+
+`$pb` is the component a script belongs to, what `$wire` is to Livewire. It reads and sets the component's properties and calls its actions:
+
+```js
+$pb.count           // what "count" holds
+$pb.count = 5       // set it, sent with the next request
+$pb.increment()     // call an action
+await $pb.save()    // ...and wait for the server's answer
+```
+
+| | |
+|---|---|
+| `$pb.name` | What the property `name` holds |
+| `$pb.name = value` | Set a property, sent with the next request |
+| `$pb.action(...args)` | Call an action |
+| `$pb.$get(name)` | What a property holds |
+| `$pb.$set(name, value)` | Set a property and send it now |
+| `$pb.$call(name, ...args)` | Call an action by name |
+| `$pb.$refresh()` | Render the component again |
+| `$pb.$el` | The component's root element |
+| `$pb.$id` | The component's id |
+| `$pb.$emit(event, data)` | Emit an event from the component |
+| `$pb.$dispatch(event, data)` | The same as `$emit()` |
+| `$pb.$on(event, callback)` | Listen for an event, for as long as the component is on the page |
+| `$pb.$watch(name, callback)` | Be told when a property changes |
+
+Each is covered where it belongs: [properties](/live-components/properties#accessing-properties-from-javascript), [actions](/live-components/actions#calling-actions-from-javascript) and [events](/live-components/events#using-javascript-to-interact-with-events).
+
+### The `PyBlade` object
+
+`PyBlade` is available to any JavaScript on the page, inside a `@script` or not: it is what `Livewire` is to Livewire. It finds components, each as its `$pb`:
+
+```js
+PyBlade.find('pb-43f55389');  // the component of that id
+PyBlade.first();              // the first component on the page
+PyBlade.all();                // every component on the page
+PyBlade.getByName('Counter'); // every Counter component
+```
+
+`getByName()` accepts the name of the class, or its full import path when two components share a name. `PyBlade` also emits and listens for [events](/live-components/events#listening-for-events-from-global-javascript), and moves to another page with `PyBlade.navigate('/tasks/')`.
+

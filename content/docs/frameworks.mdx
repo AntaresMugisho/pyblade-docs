@@ -1,0 +1,280 @@
+---
+title: "Frameworks"
+description: "How to connect PyBlade to Django, Flask, FastAPI and the other Python web frameworks."
+icon: Plug
+---
+
+PyBlade is a template engine, so it needs one small connection to your web framework: something that says "render this template with PyBlade". How that connection is made depends on the framework.
+
+| Framework | How it is connected | Support |
+|---|---|---|
+| **Django** | A template backend in `settings.py` | Full |
+| **Flask** | `render` from `pyblade.flask` | Templates |
+| **FastAPI** | `render` from `pyblade.fastapi` | Templates |
+| **Starlette** | `render` from `pyblade.starlette` | Templates |
+| **Quart** | `render` from `pyblade.quart` | Templates |
+| **Litestar** | `render` from `pyblade.litestar` | Templates |
+| **Sanic** | `render` from `pyblade.sanic` | Templates |
+
+<Callout type="info" title="Django is the fully supported framework">
+Today, Django is the only framework where **every** PyBlade feature is available. In the other frameworks PyBlade renders your templates, but some directives depend on Django and [live components](/live-components/introduction) are not available yet. See [what is different outside Django](#what-is-different-outside-django).
+</Callout>
+
+## Django
+
+Django is the only framework that needs settings to be changed. Everything below goes in `settings.py` and `urls.py`. If you started your project with `pyblade init`, all of it is already done.
+
+### The template backend
+
+Django renders templates through *backends*. Add PyBlade's, and put it **before** Django's own so that PyBlade gets the first chance to find a template:
+
+```python title="settings.py"
+TEMPLATES = [
+    {
+        "BACKEND": "pyblade.backends.django.PyBladeEngine",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+```
+
+Keeping Django's backend as the second entry means the Django admin, and any third-party app that ships Django templates, keep working. Django asks each backend in turn until one has the template.
+
+What this gives you:
+
+- `django.shortcuts.render()`, `TemplateResponse` and class-based views such as `TemplateView` all render through PyBlade. There is nothing PyBlade-specific to call.
+- The `context_processors` you list run for PyBlade templates too, and `request`, `csrf_token` and `csrf_input` are always in the context.
+- With `APP_DIRS: True`, PyBlade looks for a `templates` folder in each installed app, the way Django does. The folder's name comes from [`paths.templates`](/configuration#paths) in `pyblade.toml`.
+
+```python title="views.py"
+from django.shortcuts import render
+
+
+def home(request):
+    return render(request, "home", {"name": "Ada"})
+```
+
+<Callout type="info">
+Templates are named without their `.html` extension: `render(request, "home")` finds `templates/home.html`. See [creating your first project](/getting-started/create-your-first-project) for how templates are organized.
+</Callout>
+
+### Live components
+
+Live components need two more things.
+
+Add the app to `INSTALLED_APPS`:
+
+```python title="settings.py"
+INSTALLED_APPS = [
+    # ...
+    "pyblade.live",
+]
+```
+
+Include its URLs. They are the endpoints the browser talks to (actions, uploads, previews and PyBlade's own script and styles):
+
+```python title="urls.py"
+from django.urls import include, path
+
+urlpatterns = [
+    # ...
+    path("", include("pyblade.live.urls")),
+]
+```
+
+Then put `@pbstyles` and `@pbscripts` in your layout, as described in the [live components quickstart](/live-components/quickstart).
+
+### Other settings PyBlade reads
+
+PyBlade doesn't ask you for extra settings, but it does use some Django ones:
+
+| Setting | Used for |
+|---|---|
+| `SECRET_KEY` | Signing the state of live components. See [Security](/security) |
+| `DEBUG` | Showing PyBlade's error page, with the template's source, instead of a generic error |
+| `STATIC_URL`, `MEDIA_URL` | The `@static`, `@get_static_prefix` and `@get_media_prefix` directives |
+| `LANGUAGES`, the active language | `@trans`, `@blocktrans` and language lists |
+| `MIDDLEWARE` | `CsrfViewMiddleware` protects your forms and the live endpoints |
+| The `CACHES` default | Counting requests for the [live rate limits](/configuration#live_componentsthrottle) |
+
+### PyBlade's own configuration in `settings.py`
+
+PyBlade's options normally live in [`pyblade.toml`](/configuration), but a Django project can also write them in a `PYBLADE` dictionary, and what it says wins over the file:
+
+```python title="settings.py"
+PYBLADE = {
+    "live_components": {
+        "throttle": {"actions": "60/minute"},
+    },
+    "i18n": {"locale": "fr"},
+}
+```
+
+This is useful to change an option per environment (`settings/production.py`) or to compute one from the environment. The page on [configuration](/configuration#how-configuration-is-loaded) explains the order in which everything is read.
+
+## Flask
+
+Flask needs no changes to its configuration. Import `render` from `pyblade.flask` and use it where you would use `render_template`:
+
+```python title="app.py"
+from flask import Flask
+from pyblade.flask import render
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def home():
+    return render("home", name="Ada")
+```
+
+`render_template` is provided too, under the name Flask developers already know, so you can switch an existing project one import at a time:
+
+```python
+from pyblade.flask import render_template
+```
+
+- Templates are looked for in the folder Flask already knows: the application's `template_folder` (`templates` by default).
+- Each Flask application gets an engine of its own, so applications that run in the same process, each with their own templates, don't mix.
+- To use another folder, call `configure` once when your application starts:
+
+```python
+from pyblade.flask import configure
+
+configure("/path/to/templates")
+```
+
+## FastAPI, Starlette, Litestar and Sanic
+
+These frameworks work the same way. Import `render` from the module named after your framework and hand it the `request` first:
+
+<Tabs groupId="asgi" items={["FastAPI", "Starlette", "Litestar", "Sanic"]}>
+  <Tab>
+  ```python title="main.py"
+  from fastapi import FastAPI, Request
+  from pyblade.fastapi import render
+
+  app = FastAPI()
+
+
+  @app.get("/")
+  def home(request: Request):
+      return render(request, "home", name="Ada")
+  ```
+  </Tab>
+  <Tab>
+  ```python title="app.py"
+  from starlette.applications import Starlette
+  from starlette.routing import Route
+  from pyblade.starlette import render
+
+
+  async def home(request):
+      return render(request, "home", name="Ada")
+
+
+  app = Starlette(routes=[Route("/", home)])
+  ```
+  </Tab>
+  <Tab>
+  ```python title="app.py"
+  from litestar import Litestar, Request, Response, get
+  from pyblade.litestar import render
+
+
+  @get("/")
+  async def home(request: Request) -> Response:
+      return render(request, "home", name="Ada")
+
+
+  app = Litestar([home])
+  ```
+  </Tab>
+  <Tab>
+  ```python title="server.py"
+  from sanic import Sanic
+  from pyblade.sanic import render
+
+  app = Sanic("app")
+
+
+  @app.get("/")
+  async def home(request):
+      return render(request, "home", name="Ada")
+  ```
+  </Tab>
+</Tabs>
+
+The `request` is added to the template's context as `request`, and `render` returns an HTML response from your framework.
+
+These frameworks have no template folder of their own to ask, so PyBlade uses the [`paths.templates`](/configuration#paths) setting of your `pyblade.toml` (`templates` by default). To use another folder, say so once when the application starts:
+
+```python
+from pyblade.fastapi import configure
+
+configure("/path/to/templates")
+```
+
+## Quart
+
+Quart follows Flask, except that its `render` is a coroutine, as Quart's own `render_template` is:
+
+```python title="app.py"
+from quart import Quart
+from pyblade.quart import render
+
+app = Quart(__name__)
+
+
+@app.route("/")
+async def home():
+    return await render("home", name="Ada")
+```
+
+## What is different outside Django
+
+PyBlade's core (the syntax, escaping, the expression sandbox, components, inheritance, loops, conditions and filters) is the same in every framework. What differs is what needs the framework's help.
+
+| Feature | Django | Other frameworks |
+|---|---|---|
+| Directives, components, layouts, inheritance | Yes | Yes |
+| `{{ }}` escaping and the expression sandbox | Yes | Yes |
+| [Live components](/live-components/introduction) | Yes | Not available yet |
+| `@csrf` | Yes, with the token Django creates | Provides no token: a token must be in the context as `csrf_token` |
+| `@url` | Uses Django's URL resolver | Renders nothing |
+| `@static` | Uses `STATIC_URL` | Writes `/static/<path>` |
+| `@get_static_prefix`, `@get_media_prefix` | Use `STATIC_URL`, `MEDIA_URL` | Write `/static/` and `/media/` |
+| `@auth` | Reads `request.user` | Reads a `user` you pass in the context, or `request.user` if the request has one |
+| `@trans` and language lists | Django's translation system | PyBlade's own translations, from the `locale` folder |
+| Error page in `DEBUG` mode | Django's `DEBUG` | Flask's debug mode, or a `DEBUG=true` environment variable for FastAPI |
+
+<Callout type="warn" title="Not tested outside Django">
+The behaviors in the right-hand column describe what PyBlade is designed to do outside Django. The directives that depend on the framework (`@csrf`, `@auth`, `@static`, `@trans`...) have only been tested with Django so far, so check them in your own project before relying on them.
+</Callout>
+
+<Callout type="warn" title="Set the framework in pyblade.toml">
+A few of the behaviors above depend on knowing which framework serves the project, such as `@static` and translations. Make sure [`stack.framework`](/configuration#stack) is set in `pyblade.toml` (`pyblade init` does it for you), or PyBlade can't tell Django from the rest.
+</Callout>
+
+Support for the other frameworks is growing. If a directive you need doesn't work outside Django, or you would like another framework to be supported, tell us on the [feedback platform](https://feedback.pyblade.com).

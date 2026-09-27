@@ -87,7 +87,7 @@ Since `_post_id` is used to fetch a post, it should not be modified by users. In
 
 ## Update
 
-Client-side users can update public properties in many different ways, most commonly by modifying an input with `pb-model` on it.
+Client-side users can update public properties in many different ways, most commonly by modifying an input with `pb:model` on it.
 
 PyBlade Live provides convenient hooks to intercept the updating of a property so that you can validate or authorize a value before it's set or ensure a property is set in a given format.
 
@@ -209,7 +209,7 @@ from app.models import Post
 
 class PostList(LiveComponent):
     def render(self):
-        return self.view("show-posts", {
+        return self.render_template("show-posts", {
             "posts": Post.objects.all()
         })
     

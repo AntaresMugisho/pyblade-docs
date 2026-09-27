@@ -17,23 +17,23 @@ class CreatePost(LiveComponent):
     content  = ""
 
     def save(self):
-        Post.objects.create(title=self.title, self.content)
+        Post.objects.create(title=self.title, content=self.content)
 
     def render(self):
-        return self.view('live.create-post');
+        return self.render_template('live.create-post')
 ```
 
 ```html
-<form pb-submit="save"> // [!code highlight]
-    <input type="text" pb-model="title">
+<form pb:submit="save"> // [!code highlight]
+    <input type="text" pb:model="title">
 
-    <textarea pb-model="content"></textarea>
+    <textarea pb:model="content"></textarea>
 
     <button type="submit">Save</button>
 </form>
 ```
 
-In the above example, when a user submits the form by clicking "Save", `pb-submit` intercepts the `submit` event and calls the `save()` method on the server.
+In the above example, when a user submits the form by clicking "Save", `pb:submit` intercepts the `submit` event and calls the `save()` method on the server.
 
 In essence, actions are a way to easily map user interactions to server-side functionality without the hassle of submitting and handling AJAX requests manually.
 
@@ -41,19 +41,19 @@ In essence, actions are a way to easily map user interactions to server-side fun
 
 When allowing users to perform dangerous actions — such as deleting a post from the database — you may want to show them a confirmation alert to verify that they wish to perform that action.
 
-PyBlade Live makes this easy by providing a simple directive called `pb-confirm`:
+PyBlade Live makes this easy by providing a simple directive called `pb:confirm`:
 
 ```html {4}
 <button
     type="button"
-    pb-click="delete"
-    pb-confirm="Are you sure you want to delete this post?"
+    pb:click="delete"
+    pb:confirm="Are you sure you want to delete this post?"
 >
     Delete post
 </button>
 ```
 
-When `pb-confirm` is added to an element containing a PyBlade Live action, when a user tries to trigger that action, they will be presented with a confirmation dialog containing the provided message. They can either press **"Yes"** to confirm the action, or press **"Cancel"** or hit the escape key to cancel the action.
+When `pb:confirm` is added to an element containing a PyBlade Live action, when a user tries to trigger that action, they will be presented with a confirmation dialog containing the provided message. They can either press **"Yes"** to confirm the action, or press **"Cancel"** or hit the escape key to cancel the action.
 
 ## Passing parameters
 
@@ -75,7 +75,7 @@ class TodoList(LiveComponent):
         task.delete()
 
     def render(self):
-        return self.view("live.todo-list")
+        return self.render_template("live.todo-list")
 
 ```
 
@@ -86,7 +86,7 @@ class TodoList(LiveComponent):
             <h1>{{ task.title }}</h1>
             <span>{{ task.content }}</span>
 
-            <button pb-click="delete({{ task.id }})">Delete</button> // [!code highlight]
+            <button pb:click="delete({{ task.id }})">Delete</button> // [!code highlight]
         </div>
     @endfor
 </div>
@@ -95,7 +95,7 @@ class TodoList(LiveComponent):
 For a task with an ID of 2, the "Delete" button in the PyBlade template above will render in the browser as:
 
 ```html
-<button pb-click="delete(2)">Delete</button>
+<button pb:click="delete(2)">Delete</button>
 ```
 
 When this button is clicked, the `delete()` method will be called and `id` will be passed in with a value of "2".
@@ -153,103 +153,78 @@ class PostDetail(LiveComponent):
         self.skip_render() # [!code highlight]
 
     def render():
-        return view('live.show-post');
+        return self.render_template('live.show-post');
 
 ```
 
 
-## JavaScript actions
+## Calling actions from JavaScript
 
-PyBlade Live allows you to define JavaScript actions that run entirely on the client-side without making a server request. This is useful in two scenarios:
+In a component's [`@script`](/live-components/live-components#running-javascript-with-script), `$pb` calls its actions like JavaScript functions, with the arguments they take:
 
-1. When you want to perform simple UI updates that don't require server communication
-2. When you want to optimistically update the UI with JavaScript before making a server request
+```js
+$pb.increment();
+$pb.save(post_id, { notify: true });
 
-To define a JavaScript action, you can use the `js()` function inside a `<script>` tag in your component.
+$pb.$call('save', post_id); // the same, with the action's name as a string
+```
 
-Here's an example of bookmarking a post that uses a JavaScript action to optimistically update the UI before making a server request. The JavaScript action immediately shows the filled bookmark icon, then makes a request to persist the bookmark in the database:
+Any name that is not a property of the component is taken as an action. Only methods the component declares can be called, exactly as from `pb:click`.
+
+Every call returns a promise, settled once the server has answered and the component has been updated:
+
+```js
+await $pb.save();
+$pb.$el.classList.add('saved');
+```
+
+### Updating the page before the server answers
+
+Calling an action from JavaScript lets you show its result right away, and let the server catch up. Here, the bookmark icon is filled as soon as the button is clicked, while the bookmark is saved in the background:
 
 ```python
-from pyblade import LiveComponent 
+from pyblade import LiveComponent
 
 class PostDetail(LiveComponent):
-    
-    def mount(self):
-        self.bookmarked = self.post.is_bookmarked_by(request.user)
+    bookmarked: bool = False
+
+    def mount(self, post):
+        self.post_id = post.id
+        self.bookmarked = post.is_bookmarked_by(self.request.user)
 
     def bookmark_post(self):
-        self.post.bookmark(request.user)
-        self.bookmarked = self.post.is_bookmarked_by(request.user)
-
-    def render(self):
-        return view('live.post-detail')
+        post = Post.objects.get(id=self.post_id)
+        post.bookmark(self.request.user)
+        self.bookmarked = post.is_bookmarked_by(self.request.user)
 ```
 
 ```html
 <div>
-    <button pb-click="js.bookmark" class="flex items-center gap-1">
-        {# Outlined bookmark icon... #}
-        <svg pb-show="!bookmarked" pb-cloak xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-        </svg>
-
-        {# Solid bookmark icon... #}
-        <svg pb-show="bookmarked" pb-cloak xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-            <path fill-rule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clip-rule="evenodd" />
-        </svg>
+    <button class="bookmark">
+        <svg class="outlined" pb:show="!bookmarked">...</svg>
+        <svg class="solid" pb:show="bookmarked">...</svg>
     </button>
 </div>
 
 @script
 <script>
-    js('bookmark', () => {
-        live.bookmarked = !live.bookmarked
+    $pb.$el.querySelector('.bookmark').addEventListener('click', async () => {
+        // Show the result at once...
+        $pb.$el.querySelector('.outlined').style.display = 'none';
+        $pb.$el.querySelector('.solid').style.display = '';
 
-        live.bookmark_post()
-    })
+        // ...and let the server save it. Its answer brings the page up to date.
+        await $pb.bookmark_post();
+    });
 </script>
 @endscript
 ```
 
-When a user clicks the heart button, the following sequence occurs:
+When the user clicks the button:
 
-1. The "bookmark" JavaScript action is triggered
-2. The heart icon immediately updates by toggling `wire.bookmarked` on the client-side
-3. The `bookmark_post()` method is called to save the change to the database
-
-This provides instant visual feedback while ensuring the bookmark state is properly persisted.
-
-### Calling from Python
-
-JavaScript actions can also be called using the `js()` method from Python:
-
-```python
-from pyblade import LiveComponent 
-
-class CreatePost(LiveComponent):
-    
-    def save(self):
-        ...
-        self.js("onPostSaved") # [!code highlight]
-```
-
-```html
-<div>
-    <!-- ... -->
-
-    <button pb-click="save">Save</button>
-</div>
-
-@script
-<script>
-    js('onPostSaved', () => {
-        alert('Your post has been saved successfully!')
-    })
-</script>
-@endscript
-```
-
-In this example, when the `save()` action is finished, the `onPostSaved` JavaScript action will be run, triggering the alert dialog.
+1. The filled icon is shown at once, without waiting for the network.
+2. `bookmark_post()` is called on the server and saves the bookmark.
+3. The server's answer renders the component again, with `bookmarked` as the database says.
 
 ## Magic actions
 
@@ -262,12 +237,12 @@ Sometimes you may want to trigger a simple "refresh" of your component. For exam
 You can do this using PyBlade Live's simple `refresh` action anywhere you would normally reference your own component method:
 
 ```html
-<button type="button" pb-click="refresh">...</button>
+<button type="button" pb:click="refresh">...</button>
 ```
 
 When the `refresh` action is triggered, PyBlade Live will make a server-roundtrip and re-render your component without calling any methods.
 
-It's important to note that any pending data updates in your component (for example `pb-model` bindings) will be applied on the server when the component is refreshed.
+It's important to note that any pending data updates in your component (for example `pb:model` bindings) will be applied on the server when the component is refreshed.
 
 
 ### Calling parent actions
@@ -275,7 +250,7 @@ It's important to note that any pending data updates in your component (for exam
 The `parent` magic variable allows you to access parent component properties and call parent component actions from a child component:
 
 ```html
-<button pb-click="parent.remove_post({{ post.id }})">Remove</button>
+<button pb:click="parent.remove_post({{ post.id }})">Remove</button>
 ```
 
 In the above example, if a parent component has a `remove_post()` action, a child can call it directly from its PyBlade template using `parent.remove_post()`.
@@ -285,7 +260,7 @@ In the above example, if a parent component has a `remove_post()` action, a chil
 The `set` magic action allows you to update a property in your PyBlade Live component directly from the PyBlade template. To use `set`, provide the property you want to update and the new value as arguments:
 
 ```html
-<button pb-click="set('query', '')">Reset Search</button>
+<button pb:click="set('query', '')">Reset Search</button>
 ```
 
 In this example, when the button is clicked, a network request is dispatched that sets the `query` property in the component to an empty string `''`.
@@ -295,7 +270,7 @@ In this example, when the button is clicked, a network request is dispatched tha
 The `toggle` action is used to toggle the value of a boolean property in your PyBlade Live component:
 
 ```html
-<button pb-click="toggle('sort_asc')">
+<button pb:click="toggle('sort_asc')">
     Sort {{ "Descending" if sort_asc else "Ascending" }}
 </button>
 ```
@@ -307,7 +282,7 @@ In this example, when the button is clicked, the `sort_asc` property in the comp
 The `emit` action allows you to dispatch a PyBlade Live event directly in the browser. Below is an example of a button that, when clicked, will emit the `post-deleted` event:
 
 ```html
-<button type="submit" pb-click="emit('post-deleted')">Delete Post</button>
+<button type="submit" pb:click="emit('post-deleted')">Delete Post</button>
 ```
 
 <Callout type="info" title={"Pro tip"}>
@@ -316,10 +291,10 @@ You can also use the `dispatch` action to dispatch events. It works the same way
 
 ### Accessing event objects
 
-The `event` action may be used within event listeners like `pb-click`. This action gives you access to the actual JavaScript event that was triggered, allowing you to reference the triggering element and other relevant information:
+The `event` action may be used within event listeners like `pb:click`. This action gives you access to the actual JavaScript event that was triggered, allowing you to reference the triggering element and other relevant information:
 
 ```html
-<input type="text" pb-keydown.enter="search(event.target.value)">
+<input type="text" pb:keydown.enter="search(event.target.value)">
 ```
 
 When the enter key is pressed while a user is typing in the input above, the contents of the input will be passed as a parameter to the `search()` action.
@@ -330,30 +305,30 @@ PyBlade Live supports a variety of event listeners, allowing you to respond to v
 
 | Listener        | Description                               |
 |-----------------|-------------------------------------------|
-| `pb-click`    | Triggered when an element is clicked      |
-| `pb-submit`   | Triggered when a form is submitted        |
-| `pb-change`   | Triggered when an input value changes        |
-| `pb-keydown`  | Triggered when a key is pressed down      |
-| `pb-keyup`  | Triggered when a key is released
-| `pb-mouseenter`| Triggered when the mouse enters an element |
+| `pb:click`    | Triggered when an element is clicked      |
+| `pb:submit`   | Triggered when a form is submitted        |
+| `pb:change`   | Triggered when an input value changes        |
+| `pb:keydown`  | Triggered when a key is pressed down      |
+| `pb:keyup`  | Triggered when a key is released
+| `pb:mouseenter`| Triggered when the mouse enters an element |
 | `pb-*`| Whatever text follows `pb-` will be used as the event name of the listener |
 
-Because the event name after `pb-` can be anything, PyBlade Live supports any browser event you might need to listen for. For example, to listen for `transitionend`, you can use `pb-transitionend`.
+Because the event name after `pb-` can be anything, PyBlade Live supports any browser event you might need to listen for. For example, to listen for `transitionend`, you can use `pb:transitionend`.
 
 ### Listening for specific keys
 
 You can use one of PyBlade Live's convenient aliases to narrow down key press event listeners to a specific key or combination of keys.
 
-For example, to perform a search when a user hits `Enter` after typing into a search box, you can use `pb-keydown.enter`:
+For example, to perform a search when a user hits `Enter` after typing into a search box, you can use `pb:keydown.enter`:
 
 ```html
-<input pb-model="query" pb-keydown.enter="searchPosts">
+<input pb:model="query" pb:keydown.enter="searchPosts">
 ```
 
 You can chain more key aliases after the first to listen for combinations of keys. For example, if you would like to listen for the `Enter` key only while the `Shift` key is pressed, you may write the following:
 
 ```html
-<input pb-keydown.shift.enter="...">
+<input pb:keydown.shift.enter="...">
 ```
 
 Below is a list of all the available key modifiers:
@@ -385,7 +360,7 @@ PyBlade Live also includes helpful modifiers to make common event-handling tasks
 For example, if you need to call `event.preventDefault()` from inside an event listener, you can suffix the event name with `.prevent`:
 
 ```html
-<input pb-keydown.prevent="...">
+<input pb:keydown.prevent="...">
 ```
 
 Here is a full list of all the available event listener modifiers and their functions:
@@ -403,9 +378,9 @@ Here is a full list of all the available event listener modifiers and their func
 | `.throttle`      | Throttle the handler to being called every 250ms at minimum |
 | `.throttle.100ms`| Throttle the handler at a custom duration                |
 | `.self`          | Only call listener if event originated on this element, not children |
-| `.camel`         | Converts event name to camel case (`pb-custom-event` -> "customEvent") |
-| `.dot`           | Converts event name to dot notation (`pb-custom-event` -> "custom.event") |
-| `.passive`       | `pb-touchstart.passive` won't block scroll performance |
+| `.camel`         | Converts event name to camel case (`pb:custom-event` -> "customEvent") |
+| `.dot`           | Converts event name to dot notation (`pb:custom-event` -> "custom.event") |
+| `.passive`       | `pb:touchstart.passive` won't block scroll performance |
 | `.capture`       | Listen for event in the "capturing" phase                 |
 
 
@@ -414,10 +389,10 @@ Here is a full list of all the available event listener modifiers and their func
 Consider the `CreatePost` example we previously discussed:
 
 ```html
-<form pb-submit="save">
-    <input pb-model="title">
+<form pb:submit="save">
+    <input pb:model="title">
 
-    <textarea pb-model="content"></textarea>
+    <textarea pb:model="content"></textarea>
 
     <button type="submit">Save</button>
 </form>
@@ -429,24 +404,24 @@ But, let's imagine that a user is filling out this form on a slow internet conne
 
 In this case, there would be two requests for the same action being processed at the same time.
 
-To prevent this scenario, PyBlade Live automatically disables the submit button and all form inputs inside the `<form>` element while a `pb-submit` action is being processed. This ensures that a form isn't accidentally submitted twice.
+To prevent this scenario, PyBlade Live automatically disables the submit button and all form inputs inside the `<form>` element while a `pb:submit` action is being processed. This ensures that a form isn't accidentally submitted twice.
 
 To further lessen the confusion for users on slower connections, it is often helpful to show some loading indicator such as a subtle background color change or SVG animation.
 
-PyBlade Live provides a `pb-loading` directive that makes it trivial to show and hide loading indicators anywhere on a page. Here's a short example of using `pb-loading` to show a loading message below the "Save" button:
+PyBlade Live provides a `pb:loading` directive that makes it trivial to show and hide loading indicators anywhere on a page. Here's a short example of using `pb:loading` to show a loading message below the "Save" button:
 
 ```html
-<form pb-submit="save">
-    <textarea pb-model="content"></textarea>
+<form pb:submit="save">
+    <textarea pb:model="content"></textarea>
 
     <button type="submit">Save</button>
 
-    <span pb-loading>Saving...</span>  // [!code highlight]
+    <span pb:loading>Saving...</span>  // [!code highlight]
 </form>
 ```
 
 ## Security concerns
 
-Remember that any method in your PyBlade Live component can be called from the client-side, even without an associated `pb-click` handler that invokes it. In these scenarios, users can still trigger the action from the browser's DevTools. So to make your application secure, read out our [Security concerns](#) before using actions.
+Remember that any method in your PyBlade Live component can be called from the client-side, even without an associated `pb:click` handler that invokes it. In these scenarios, users can still trigger the action from the browser's DevTools. So to make your application secure, read our [security concerns](/security#actions-are-public-endpoints) before using actions.
 
 

@@ -25,34 +25,34 @@ class PostCreate(LiveComponent):
         return self.redirect('/posts')
 
     def render(self):
-        return self.view("live.post-create")
+        return self.render_template("live.post-create")
 ```
 
 ```blade
-<form pb-submit="save">
-    <input type="text" pb-model="title">
+<form pb:submit="save">
+    <input type="text" pb:model="title">
 
-    <input type="text" pb-model="content">
+    <input type="text" pb:model="content">
 
     <button type="submit">Save</button>
 </form>
 ```
 
-As you can see, we are "binding" the public `title` and `content` properties in the form above using `pb-model`. This is one of the most commonly used and powerful features of PyBlade Live.
+As you can see, we are "binding" the public `title` and `content` properties in the form above using `pb:model`. This is one of the most commonly used and powerful features of PyBlade Live.
 
-In addition to binding `title` and `content`, we are using `pb-submit` to capture the `submit` event when the "Save" button is clicked and invoking the `save()` action. This action will persist the form input to the database.
+In addition to binding `title` and `content`, we are using `pb:submit` to capture the `submit` event when the "Save" button is clicked and invoking the `save()` action. This action will persist the form input to the database.
 
 After the new post is created in the database, we redirect the user to the `ShowPosts` component page and show them a "flash" message that the new post was created.
 
 
 ## PyBlade Live-updating fields
 
-By default, PyBlade Live only sends a network request when the form is submitted (or any other [action](/docs/liblade/actions) is called), not while the form is being filled out.
+By default, PyBlade Live only sends a network request when the form is submitted (or any other [action](/liblade/actions) is called), not while the form is being filled out.
 
-Take the `CreatePost` component, for example. If you want to make sure the "title" input field is synchronized with the `title` property on the backend as the user types, you may add the `.live` modifier to `pb-model` like so:
+Take the `CreatePost` component, for example. If you want to make sure the "title" input field is synchronized with the `title` property on the backend as the user types, you may add the `.live` modifier to `pb:model` like so:
 
 ```blade
-<input type="text" pb-model.live="title">
+<input type="text" pb:model.live="title">
 ```
 
 Now, as a user types into this field, network requests will be sent to the server to update `title`. This is useful for things like a real-time search, where a dataset is filtered as a user types into a search box.
@@ -60,10 +60,10 @@ Now, as a user types into this field, network requests will be sent to the serve
 
 ### Debouncing input
 
-When live-updating with `pb-model.debounce` on a text input, you may want more fine-grained control over how often a network request is sent. By default, a debounce of "250ms" is applied to the input; however, you can customize this using the `.Xms` modifier, `X` representing the number of milliseconds:
+When live-updating with `pb:model.debounce` on a text input, you may want more fine-grained control over how often a network request is sent. By default, a debounce of "250ms" is applied to the input; however, you can customize this using the `.Xms` modifier, `X` representing the number of milliseconds:
 
 ```blade
-<input type="text" pb-model.debounce.150ms="title" >
+<input type="text" pb:model.debounce.150ms="title" >
 ```
 
 Now that `.debounce.150ms` has been added to the field, a shorter debounce of "150ms" will be used when handling input updates for this field. In other words, as a user types, a network request will only be sent if the user stops typing for at least 150 milliseconds.
@@ -77,19 +77,19 @@ Sometimes this isn't the desired behavior, and you would rather send a request a
 In these cases, you can instead use `.throttle` to signify a time interval to send network requests:
 
 ```blade
-<input type="text" pb-model.throttle.150ms="title" >
+<input type="text" pb:model.throttle.150ms="title" >
 ```
 
 In the above example, as a user is typing continuously in the "title" field, a network request will be sent every 150 milliseconds until the user is finished.
 
 ### PyBlade Live-updating only on _blur_
 
-For most cases, `pb-model.live` is fine for real-time form field updating; however, it can be overly network resource-intensive on text inputs.
+For most cases, `pb:model.live` is fine for real-time form field updating; however, it can be overly network resource-intensive on text inputs.
 
 If instead of sending network requests as a user types, you want to instead only send the request when a user "tabs" out of the text input (also referred to as "blurring" an input), you can use the `.blur` modifier instead:
 
 ```blade
-<input type="text" pb-model.blur="title" >
+<input type="text" pb:model.blur="title" >
 ```
 
 Now the component class on the server won't be updated until the user presses tab or clicks away from the text input.
@@ -124,19 +124,19 @@ class PostCreate(LiveComponent):
         return self.redirect('/posts')
 
     def render(self):
-        return self.view("live.post-create")
+        return self.render_template("live.post-create")
 ```
 
 We'll also modify our PyBlade template to show any validation errors on the page. We will achieve this using the PyBlade `@error` directive.
 
 ```blade
-<form pb-submit="save">
-    <input type="text" pb-model="title">
+<form pb:submit="save">
+    <input type="text" pb:model="title">
     <div>
         @error('title') <span class="error">{{ message }}</span> @enderror <!-- [!code highlight] -->
     </div>
 
-    <input type="text" pb-model="content">
+    <input type="text" pb:model="content">
     <div>
         @error('content') <span class="error">{{ message }}</span> @enderror <!-- [!code highlight] -->
     </div>
@@ -175,17 +175,17 @@ class PostCreate(LiveComponent):
         return self.redirect('/posts')
 
     def render(self):
-        return self.view("live.post-create")
+        return self.render_template("live.post-create")
 ```
 
 ### Real-time validation
 
 Sometimes, you may want to show validation errors as the user fills out the form. This way, they are alerted early that something is wrong instead of having to wait until the entire form is filled out.
 
-PyBlade Live handles this sort of thing automatically. By using `.live` or `.blur` modifiers on `pb-model`, PyBlade Live will send network requests as the user fills out the form. Each of those network requests will run the appropriate validation rules before updating each property. If validation fails, the property won't be updated on the server and a validation message will be shown to the user:
+PyBlade Live handles this sort of thing automatically. By using `.live` or `.blur` modifiers on `pb:model`, PyBlade Live will send network requests as the user fills out the form. Each of those network requests will run the appropriate validation rules before updating each property. If validation fails, the property won't be updated on the server and a validation message will be shown to the user:
 
 ```blade
-<input type="text" pb-model.blur="title">
+<input type="text" pb:model.blur="title">
 
 <div>
     @error('title') <span class="error">{{ message }}</span> @enderror
@@ -202,7 +202,7 @@ from pyblade import LiveComponent
 Now, if the user only types three characters into the "title" input, then clicks on the next input in the form, a validation message will be shown to them indicating there is a five character minimum for that field.
 
 <Callout type="info">
-PyBlade Live has a lot more validation features to offer. For more information, visit our dedicated documentation page on [Validation](/docs/live/features/validation).
+PyBlade Live has a lot more validation features to offer. For more information, visit our dedicated documentation page on [Validation](/live-components/features/validation).
 </Callout>
 
 ## Showing a loading indicator
@@ -211,13 +211,13 @@ By default, PyBlade Live will automatically disable submit buttons and mark inpu
 
 However, it can be difficult for users to detect this "loading" state without extra affordances in your application's UI.
 
-Here's an example of adding a small loading spinner to the "Save" button via `pb-loading` so that a user understands that the form is being submitted:
+Here's an example of adding a small loading spinner to the "Save" button via `pb:loading` so that a user understands that the form is being submitted:
 
 ```blade
 <button type="submit">
     Save
 
-    <div pb-loading>
+    <div pb:loading>
         <svg>...</svg> <!-- SVG loading spinner -->
     </div>
 </button>
@@ -226,7 +226,7 @@ Here's an example of adding a small loading spinner to the "Save" button via `pb
 Now, when a user presses "Save", a small, inline spinner will show up.
 
 <Callout type="info">
-You can learn more about the `pb-loading` directive and other PyBlade Live directives in the [PyBlade Live Directives](/docs/live/live-directives#pb-loading) documentation.
+You can learn more about the `pb:loading` directive and other PyBlade Live directives in the [PyBlade Live Directives](/live-components/live-directives#pbloading) documentation.
 </Callout>
 
 ## Real-time form saving
@@ -257,17 +257,17 @@ class PostUpdate(LiveComponent):
         self.post.save()
 
     def render(self):
-        return view('live.post-update')
+        return self.render_template('live.post-update')
 ```
 
 ```blade
-<form pb-submit>
-    <input type="text" pb-model.blur="title">
+<form pb:submit>
+    <input type="text" pb:model.blur="title">
     <div>
         @error('title') <span class="error">{{ message }}</span> @enderror
     </div>
 
-    <input type="text" pb-model.blur="content">
+    <input type="text" pb:model.blur="content">
     <div>
         @error('content') <span class="error">{{ message }}</span> @enderror
     </div>
@@ -281,7 +281,7 @@ We can use this hook to update only that specific field in the database.
 Additionally, because we have validation rules attached to those properties, the validation rules will be run before the property is updated and the `updated()` hook is called.
 
 <Callout type="info">
-To learn more about the `updated()` hook and other livecycle hooks, visit the [Lifecycle hooks](/docs/live/lifecycle-hooks) documentation.
+To learn more about the `updated()` hook and other livecycle hooks, visit the [Lifecycle hooks](/live-components/lifecycle-hooks) documentation.
 </Callout>
 
 ## Showing dirty indicators
@@ -290,20 +290,20 @@ In the real-time saving scenario discussed above, it may be helpful to indicate 
 
 For example, if a user visits an `PostUpdate` page and starts modifying the title of the post in a text input, it may be unclear to them when the title is actually being updated in the database, especially if there is no "Save" button at the bottom of the form.
 
-PyBlade Live provides the `pb-dirty` directive to allow you to toggle elements or modify classes when an input's value diverges from the server-side component:
+PyBlade Live provides the `pb:dirty` directive to allow you to toggle elements or modify classes when an input's value diverges from the server-side component:
 
 ```blade
-<input type="text" pb-model.blur="title" pb-dirty.class="border-yellow">
+<input type="text" pb:model.blur="title" pb:dirty.class="border-yellow">
 ```
 
 In the above example, when a user types into the input field, a yellow border will appear around the field. When the user tabs away, the network request is sent and the border will disappear; signaling to them that the input has been persisted and is no longer "dirty".
 
-If you want to toggle an entire element's visibility, you can do so by using `pb-dirty` in conjunction with `pb-target`. `pb-target` is used to specify which piece of data you want to watch for "dirtiness". In this case, the "title" field:
+If you want to toggle an entire element's visibility, you can do so by using `pb:dirty` in conjunction with `pb:target`. `pb:target` is used to specify which piece of data you want to watch for "dirtiness". In this case, the "title" field:
 
 ```blade
-<input type="text" pb-model="title">
+<input type="text" pb:model="title">
 
-<div pb-dirty pb-target="title">Unsaved...</div>
+<div pb:dirty pb:target="title">Unsaved...</div>
 ```
 
 ## Extracting a form object
@@ -352,17 +352,17 @@ class CreatePost(LiveComponent)
         return self.redirect('/posts')
 
         def render(self):
-                return self.view("live.post-create")
+                return self.render_template("live.post-create")
 ```
 
 ```blade
-<form pb-submit="save">
-    <input type="text" pb-model="form.title">
+<form pb:submit="save">
+    <input type="text" pb:model="form.title">
     <div>
         @error(form.title) <span class="error">{{ message }}</span> @enderror
     </div>
 
-    <input type="text" pb-model="form.content">
+    <input type="text" pb:model="form.content">
     <div>
         @error(form.content) <span class="error">{{ message }}</span> @enderror
     </div>
@@ -409,18 +409,18 @@ Form objects are not required when working with PyBlade Live, but they do offer 
 
 Even in a small PyBlade Live component such as the `PostCreate` example we've been discussing, we end up duplicating lots of form field boilerplate like validation messages and labels.
 
-It can be helpful to extract repetitive UI elements such as these into dedicated [PyBlade components](/docs/components) to be shared across your application.
+It can be helpful to extract repetitive UI elements such as these into dedicated [PyBlade components](/components) to be shared across your application.
 
 For example, below is the original PyBlade template from the `PostCreate` component. We will be extracting the following two text inputs into dedicated PyBlade components:
 
 ```blade
-<form pb-submit="save">
-    <input type="text" pb-model="title"> <!-- [!code highlight:4] -->
+<form pb:submit="save">
+    <input type="text" pb:model="title"> <!-- [!code highlight:4] -->
     <div>
         @error('title') <span class="error">{{ message }}</span> @enderror
     </div>
 
-    <input type="text" pb-model="content"> <!-- [!code highlight:4] -->
+    <input type="text" pb:model="content"> <!-- [!code highlight:4] -->
     <div>
         @error('content') <span class="error">{{ message }}</span> @enderror
     </div>
@@ -432,10 +432,10 @@ For example, below is the original PyBlade template from the `PostCreate` compon
 Here's what the template will look like after extracting a re-usable PyBlade component called `text-input`:
 
 ```blade
-<form pb-submit="save">
-    <pb-text-input name="title" pb-model="title" /> <!-- [!code highlight] -->
+<form pb:submit="save">
+    <pb-text-input name="title" pb:model="title" /> <!-- [!code highlight] -->
 
-    <pb-text-input name="content" pb-model="content" /> <!-- [!code highlight] -->
+    <pb-text-input name="content" pb:model="content" /> <!-- [!code highlight] -->
 
     <button type="submit">Save</button>
 </form>
@@ -468,4 +468,4 @@ By specifying `name` as a "prop" using `@props(['name'])` we are telling PyBlade
 
 For other attributes that don't have an explicit purpose, we used the `{{ attributes }}` statement. This is used for "attribute forwarding", or in other words, taking any HTML attributes written on the PyBlade component and forwarding them onto an element within the component.
 
-This ensures `pb-model="title"` and any other extra attributes such as `disabled`, `class="..."`, or `required` still get forwarded to the actual `<input>` element.
+This ensures `pb:model="title"` and any other extra attributes such as `disabled`, `class="..."`, or `required` still get forwarded to the actual `<input>` element.

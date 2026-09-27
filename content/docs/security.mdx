@@ -1,0 +1,590 @@
+---
+title: "Security"
+---
+
+PyBlade renders templates on the server and, with live components, lets the browser call your Python code. Most of what keeps an application safe is done for you: output is escaped, template expressions run in a sandbox, the state a live component sends to the browser is signed, and the live endpoints are rate-limited. What is left to you is mostly one rule, which this page comes back to often: **anything that arrives from the browser is input, and has to be checked like input**.
+
+## Who protects what
+
+Security in a PyBlade application is shared between three parties. Knowing which one is responsible for what is most of the work:
+
+| | PyBlade | Your framework (Django) | You |
+|---|---|---|---|
+| Escaping output | `{{ }}` escapes HTML | | Choosing when to use `{!! !!}`, and URLs and JavaScript contexts |
+| Template expressions | Run in a sandbox | | Never building a template from user input |
+| CSRF | Sends the token with every live request | Creates and checks the token | `@csrf` in your forms, the middleware enabled |
+| Live component state | Signs it, refuses edited state | Provides `SECRET_KEY` | Keeping `SECRET_KEY` secret |
+| Which methods and properties the browser reaches | Only public, declared ones | | **Authorizing each action, validating each property** |
+| Uploads | Checks them against your rules, serves previews defensively | Storage | Declaring the rules, naming files safely |
+| Flooding | Per-client rate limits | Cache backend | A shared cache, and a proxy or firewall in front |
+| Sessions, cookies, HTTPS, headers | | Settings and middleware | Turning them on |
+| Your data | | ORM | Querying only what the current user may see |
+
+The rest of this page follows that table. Read the sections about live components with the most care: they are where the largest part of an application's security ends up being decided.
+
+<Callout type="info" title="Frameworks other than Django">
+Templates are escaped and sandboxed whatever framework renders them. Live components, the CSRF integration and the rate limits currently belong to Django. See [Other frameworks](#other-frameworks) below.
+</Callout>
+
+## Templates
+
+### Output is escaped
+
+Everything written with `{{ }}` is HTML-escaped: `<`, `>`, `&`, `"` and `'` come out as entities, so a value can't open a tag or leave an attribute.
+
+```html
+<p>{{ comment.body }}</p>
+<!-- "<script>alert(1)</script>" is shown as text, not run -->
+```
+
+`{!! !!}` writes a value **as it is**, without escaping. Use it only for markup you produced yourself, or that has been cleaned with an HTML sanitizer. Never use it for anything a user typed:
+
+```html
+{!! article.body_html !!}   <!-- only if body_html is trusted markup -->
+```
+
+### Escaping is about HTML, not about every context
+
+HTML escaping makes a value safe as text and inside a quoted attribute. It doesn't make every value safe everywhere:
+
+- **URLs.** `<a href="{{ link }}">` stays a link to `javascript:alert(1)` if that is what `link` holds. Check that URLs coming from users start with `https://` or `/` before rendering them.
+- **Unquoted attributes.** Always quote attributes: `class="{{ css }}"`, never `class={{ css }}`.
+- **JavaScript.** A value written inside a `<script>` or a `@script` is not a JavaScript string: HTML escaping doesn't prevent it from breaking out of one. Pass data to JavaScript through an attribute instead, and read it from there:
+
+```html
+<div id="chart" data-points="{{ points }}"></div>
+
+@script
+<script>
+    const points = JSON.parse($pb.$el.querySelector('#chart').dataset.points);
+</script>
+@endscript
+```
+
+In a live component, the simplest and safest way is to read a property through [`$pb`](/live-components/live-components#the-pb-object): `$pb.points`.
+
+### The expression sandbox
+
+The expressions written in templates run in a sandbox, not as Python:
+
+- names starting with `_` can't be read (`{{ user._password }}` raises an error),
+- methods can only be called on strings, lists, tuples and dictionaries, and only the harmless ones (`upper`, `strip`, `get`, `items`…),
+- an object's own methods can't be called from a template, unless its class lists them in `pb_safe_methods`,
+- only a small set of builtins is available (`len`, `range`, `min`, `max`…): no `open`, no `import`, no `eval`.
+
+The sandbox limits the damage a mistake in a template can do. It is not a reason to put sensitive objects in the context: whatever a template can reach, a template may one day render.
+
+### What you pass is what templates can reach
+
+A template can read everything you put in its context, and, through the sandbox's rules, the public attributes of those objects. So pass what the page needs, not what is convenient:
+
+```python
+# Convenient, and hands the template the whole user, password hash included:
+return render(request, "profile.html", {"user": user})
+
+# Better: only what the page shows
+return render(request, "profile.html", {
+    "display_name": user.get_full_name(),
+    "avatar_url": user.profile.avatar_url,
+})
+```
+
+The sandbox refuses names starting with `_` and most methods, but the safest data is the data that was never given. This matters most for objects that later change: a model that gains a `api_token` field next year should not start appearing in templates by accident.
+
+### Sanitizing the markup you do trust
+
+Sometimes a user is *supposed* to write HTML: a rich-text editor, a Markdown comment. That markup has to be cleaned **when it is turned into HTML**, with a sanitizer that keeps an allow-list of tags and attributes (such as [nh3](https://pypi.org/project/nh3/) or [bleach](https://pypi.org/project/bleach/)), and only what comes out of it should reach `{!! !!}`:
+
+```python
+import nh3
+
+def save_comment(self):
+    self.comment.body_html = nh3.clean(markdown_to_html(self.body))
+```
+
+Clean once, when saving, or every time on the way out, but never trust a value because it "came from our own database": it got there from a user.
+
+### Never build templates from user input
+
+A template is code. Rendering a template whose **source** contains user input is template injection, sandbox or not:
+
+```python
+# Never:
+self.render_inline(f"<div>Hello {name}</div>")
+
+# Instead, pass the value as data:
+self.render_inline("<div>Hello {{ name }}</div>", context={"name": name})
+```
+
+## Forms and CSRF
+
+PyBlade relies on Django's CSRF protection:
+
+- write `@csrf` in every form that is posted to your own views,
+- keep `django.middleware.csrf.CsrfViewMiddleware` in your `MIDDLEWARE`.
+
+The live endpoints are protected the same way. `@pbscripts` writes the CSRF token on the page, and every request a live component makes sends it in the `X-CSRFToken` header. A request from another site doesn't have the token and is refused.
+
+## Live components
+
+A live component is a small API. Its public properties are data the browser can read and change, and its public methods are endpoints the browser can call. Treat them as such.
+
+### What the browser holds
+
+When a live component is rendered, its public properties are written into the page, so that the browser can send them back with the next request. Anyone can read them with their browser's developer tools.
+
+- Keep secrets (tokens, keys, other users' data) out of public properties: they are **visible**.
+- Keep them in properties whose name starts with `_`. These are never sent to the browser.
+
+```python
+class Checkout(LiveComponent):
+    total: float = 0        # public: in the page, visible
+    _api_key: str = None    # private: stays on the server
+```
+
+A private property is not kept between requests, precisely because it never leaves the server. Set it again where it is needed, in `boot()`:
+
+```python
+def boot(self):
+    self._api_key = settings.PAYMENT_API_KEY
+```
+
+The state written in the page is **signed** with your `SECRET_KEY` (HMAC-SHA256). A request whose state was edited is refused before your component is even built. This is why:
+
+- `SECRET_KEY` must stay secret: anyone who has it can sign any state,
+- changing `SECRET_KEY` makes every page already open in a browser stale: their next request is refused, and they have to be loaded again.
+
+### Properties are input
+
+The signature stops the browser from editing the state it was given. It doesn't stop it from **changing a property the normal way**: that is what `pb:model` does, and `$pb.$set()`, and anybody can send the same request by hand. So every public property can be set by the browser, to any value, even one no field of your template is bound to.
+
+Only properties the component actually holds can be set this way: those it declares, those it set while it was alive (in `mount()` or an action), and those declared by their type with no value yet (`title: str`). A name the component doesn't hold, one of its methods, a `@property` or a name starting with `_` is refused with `403`, before any hook runs.
+
+That means:
+
+- **validate** what a property holds before using it,
+- **never trust a public property to say who may do what**.
+
+The classic mistake is keeping an id in a public property and trusting it later:
+
+```python
+class EditPost(LiveComponent):
+    post_id: int = None
+    title: str = ""
+
+    def mount(self, post):
+        self.post_id = post.id    # public: the browser can change it
+        self.title = post.title
+
+    def save(self):
+        # Wrong: post_id may have been changed to someone else's post
+        Post.objects.filter(id=self.post_id).update(title=self.title)
+```
+
+Check again, in the action, that the current user may touch what the property points at:
+
+```python
+    def save(self):
+        post = Post.objects.get(id=self.post_id, author=self.request.user) # [!code highlight]
+        post.title = self.title
+        post.save()
+```
+
+To check what properties hold, declare the rules as Django form fields and validate before acting:
+
+```python
+from django import forms
+from pyblade.live import LiveComponent, validate
+
+
+class EditPost(LiveComponent):
+    title: str = ""
+
+    rules = {
+        "title": forms.CharField(max_length=120),
+    }
+
+    @validate
+    def save(self):
+        ...
+```
+
+An action written `@validate` is not called when a rule fails: the component renders again with the errors. See [Validation](/live-components/features/validation).
+
+### Actions are public endpoints
+
+Every public method a component declares can be called from the browser, with any arguments, whether or not a `pb:click` in your template calls it. Someone can call it from the developer tools, or from a script.
+
+What can **not** be called:
+
+- methods whose name starts with `_`,
+- the methods PyBlade's `LiveComponent` itself provides (`render`, `mount`, `validate`, `reset`…),
+- methods inherited from any base class other than a `ComponentMixin`.
+
+So keep helpers private, and **authorize inside every action** that changes something. The request is at hand as `self.request`:
+
+```python
+class PostActions(LiveComponent):
+    post_id: int = None
+
+    def delete(self):
+        post = Post.objects.get(id=self.post_id)
+
+        if post.author != self.request.user and not self.request.user.is_staff: # [!code highlight]
+            raise PermissionError("You can't delete this post.") # [!code highlight]
+
+        post.delete()
+
+    def _notify_author(self, post):   # private: not callable from the browser
+        ...
+```
+
+Arguments passed to an action come from the browser too: validate them like properties.
+
+`@confirm` makes the page ask the user before an action runs, and the server refuses the action when the page didn't ask. It protects users from a click they didn't mean. It is **not** authorization: someone calling the action on purpose can say they were asked.
+
+### Event handlers are actions too
+
+A method written `@on('...')` runs when the event reaches the component, and anybody can emit any event, with any data, from the page's JavaScript (`PyBlade.emit('post-deleted', { id: 5 })`). Validate the data an event carries, and authorize what the handler does, as in any action.
+
+### Mount arguments
+
+What a page component receives from the URL, and what a component tag receives as attributes, is handed to `mount()`. URL parameters come from the user: check that the user may see what they point at before loading it.
+
+```python
+from django.shortcuts import get_object_or_404
+
+
+class InvoiceDetail(LiveComponent):
+    def mount(self, id: int):
+        self.invoice = get_object_or_404(Invoice, id=id, customer=self.request.user) # [!code highlight]
+```
+
+The arguments of a [lazy](/live-components/features/lazy-loading) component travel in its signed state until it loads, so they can't be changed in between.
+
+### JavaScript
+
+[`$pb`](/live-components/live-components#the-pb-object) can call any action and set any property. That is not a new risk: it is the same request `pb:click` and `pb:model` send, which is why actions and properties have to be checked on the server.
+
+A `@script` block is run as an inline script. If your site sends a Content Security Policy, it has to allow inline scripts for `@script` to run, either with `'unsafe-inline'` or with a nonce. With a nonce-based policy, PyBlade gives the scripts it runs the `nonce` of the first `<script nonce="...">` on the page, so one script carrying your nonce, in your layout, is enough.
+
+### File uploads
+
+A file can only be sent for a property the component declares with a file field in `rules` (or in its `form_class`). Anything else is refused. The file is checked against that field **before** it is kept:
+
+```python
+from django import forms
+from pyblade.live import LiveComponent
+from pyblade.live.uploads import MaxFileSize
+
+
+class Avatar(LiveComponent):
+    photo = None
+
+    rules = {
+        "photo": forms.ImageField(validators=[MaxFileSize("2mb")]),
+    }
+```
+
+- Use `ImageField` for images: it checks that the file really is an image, not only that its name ends in `.png`.
+- Always limit the size with `MaxFileSize`.
+- For other files, restrict the extensions with Django's `FileExtensionValidator`.
+
+A file waiting to be saved is kept in a temporary directory (`pyblade-tmp` in your default storage), under a random name PyBlade chooses, and is reachable only through a signed note that expires after six hours. Files nobody saved are deleted on their own.
+
+When you save a file, don't trust its original name or the content type the browser declared. Store it under a name of your own, outside any directory your web server executes code from.
+
+A preview is served from your own domain, so PyBlade serves it defensively. Only pictures a browser simply draws (PNG, JPEG, GIF, WebP, AVIF, BMP, ICO) are shown. Anything else, SVG included since it can hold scripts, is sent as a download. Every preview is sent with `X-Content-Type-Options: nosniff` and a Content Security Policy that lets nothing in it run. The temporary file itself is stored without its original extension, so a web server serving your media directory can't serve it as a page either.
+
+### Rate limits
+
+Every client can call the live endpoints only so often. A client is the signed-in user, or the IP address for anyone else. The limits are set in the `[live_components.throttle]` table of your [`pyblade.toml`](/configuration#live_componentsthrottle):
+
+```toml title="pyblade.toml"
+[live_components.throttle]
+actions = "120/minute"
+uploads = "20/minute"
+max_body = "1mb"
+max_streams = 16
+trust_forwarded = false
+```
+
+Those are the defaults, so the table only has to hold what you change. In a Django project the same table can be written in a `PYBLADE` dictionary in `settings.py` instead.
+
+| Option | Default | What it limits |
+|---|---|---|
+| `actions` | `120/minute` | Requests to the live endpoint: actions, property updates, events |
+| `uploads` | `20/minute` | Files sent for uploads |
+| `max_body` | `1mb` | The size of a request to the live endpoint, refused before it is read |
+| `max_streams` | `16` | [Streamed](/live-components/live-directives#pbstream) actions running at once, each holding a thread |
+| `trust_forwarded` | `false` | Count clients by the `X-Forwarded-For` header |
+| `enabled` | `true` | Set to `false` to turn all of it off |
+
+A client over a limit is answered `429 Too Many Requests`, with a `Retry-After` header that PyBlade's JavaScript respects.
+
+- The counts are kept in Django's cache. The default cache lives in the memory of each process: with several workers, configure a shared cache (Redis, Memcached) or each worker counts on its own.
+- Only set `trust_forwarded` to `true` behind a proxy you control that sets `X-Forwarded-For`. Without one, any client can write that header and escape the limits.
+- Rate limits protect against one client abusing your components. They don't protect against a distributed attack: that is the job of whatever stands in front of your application (a load balancer, a CDN, a firewall).
+
+## Your data
+
+PyBlade never talks to your database: your models, queries and permissions are yours. Live components make one mistake very easy, though, because a component keeps values between requests and the browser can set them.
+
+### Query only what the user may see
+
+Scope every query to the current user, instead of fetching by id and checking afterwards. A row the user can't see should behave exactly like a row that doesn't exist:
+
+```python
+# Fetch, then hope somebody checks:
+post = Post.objects.get(id=self.post_id)
+
+# Scoped: someone else's post is a 404
+post = get_object_or_404(Post, id=self.post_id, author=self.request.user)
+```
+
+This one habit prevents most of what is called *insecure direct object references* (IDOR): changing an id in a request to reach somebody else's data.
+
+### Never build SQL from strings
+
+Use the ORM. When you need raw SQL, pass values as parameters and never format them into the query, which is how a search box becomes a database dump:
+
+```python
+# Never:
+Post.objects.raw(f"SELECT * FROM blog_post WHERE title LIKE '%{self.search}%'")
+
+# Instead:
+Post.objects.filter(title__icontains=self.search)
+Post.objects.raw("SELECT * FROM blog_post WHERE title LIKE %s", [f"%{self.search}%"])
+```
+
+A `search` property bound with `pb:model` is user input like any other.
+
+### Don't copy properties into models wholesale
+
+Every public property can be set to anything, so copying them all into a model lets a user write fields you never put in the form: `is_staff`, `owner_id`, `price`:
+
+```python
+# Never: which fields are in there depends on what the browser sent
+Post.objects.filter(id=post.id).update(**{name: getattr(self, name) for name in self.__annotations__})
+
+# Instead: name the fields you accept, one by one
+post.title = self.title
+post.body = self.body
+post.save(update_fields=["title", "body"])
+```
+
+Use `update_fields` (or a Django `ModelForm` with an explicit `fields` list) so a mistake elsewhere can't widen what a save writes.
+
+### Guard against races on things that matter
+
+Two requests can arrive together: a double click, or a script sending fifty. If an action spends a coupon, moves money or decrements a stock, do it in a transaction with a lock, and make the operation safe to repeat:
+
+```python
+from django.db import transaction
+
+def redeem(self):
+    with transaction.atomic():
+        coupon = Coupon.objects.select_for_update().get(code=self.code, used=False)
+        coupon.used = True
+        coupon.save()
+```
+
+## Authentication and authorization
+
+**Authentication** is knowing who the user is. **Authorization** is deciding what they may do. Django does the first; the second is written by you, in the place where the work happens.
+
+### Hiding is not protecting
+
+`@auth`, `@if user.is_staff` and every other condition in a template decide what is **shown**. They keep a button out of sight; they don't stop a request:
+
+```html
+@if user.is_staff
+    <button pb:click="delete">Delete</button>
+@endif
+```
+
+A user without the button can still call `delete` from the developer tools, so the action has to check for itself. Treat the template as a courtesy to honest users and the action as the actual door.
+
+### Check in `mount()` and in every action
+
+A component is built again on every request, and each request is a fresh chance for something to have changed: the user logged out, a permission was withdrawn, a post was deleted. Check who may do what each time you act, not once at mount.
+
+What happens when a check fails depends on where the component is being built:
+
+| Where the check fails | What to raise | What the user gets |
+|---|---|---|
+| An **action** or an event handler | `PermissionError("...")` | A `403`, and your message is shown to the user |
+| `mount()` of a **page component** (routed with `as_view()`) | Django's `PermissionDenied` or `Http404` | Django's `403` or `404` page |
+| `mount()` of a component **written in a template** (`<pb-...>`) | Nothing works here: any exception becomes a `500` | Check in the view that renders the page instead |
+
+```python
+from django.core.exceptions import PermissionDenied
+
+
+class PostEditor(LiveComponent):
+    post_id: int = None
+    title: str = ""
+
+    def mount(self, post):
+        if post.author != self.request.user:
+            raise PermissionDenied # a page component: the user sees Django's 403 page
+        self.post_id = post.id
+        self.title = post.title
+
+    def save(self):
+        post = get_object_or_404(Post, id=self.post_id)
+        if post.author != self.request.user:
+            raise PermissionError("You can't edit this post.") # an action: the message is shown
+        ...
+```
+
+For a component written in a template, decide **before** the template is rendered, in the view:
+
+```python
+def edit_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id, author=request.user)
+    return render(request, "posts/edit", {"post": post})
+```
+
+When many actions need the same check, put it in a private method (starting with `_`, so the browser can't call it) and call it first in each:
+
+```python
+def _authorize(self):
+    if not self.request.user.is_authenticated:
+        raise PermissionError("Please sign in first.")
+```
+
+### Protect the page as well
+
+A page that shows a live component is still a normal view. Protect it the normal way (`login_required`, a mixin, your own middleware) and *also* check inside the component. A component can be reached on its own through the live endpoint, without ever going through the page that displays it.
+
+### Fail closed, and say little
+
+Refuse by default: when the check is unsure, the answer is no. A refusal should not explain how to succeed. A `PermissionError` message is shown to the user, so write "You can't edit this post", not "Only the author (id 12) or staff with change_post may edit posts".
+
+## Errors and debug mode
+
+With `DEBUG = True`, an error shows PyBlade's error page, with your template's source and the traceback. An error in a live component shows the same page over the current one. That is what you want while developing, and what you must never show anyone else: it reveals your code, your paths and your settings.
+
+In production:
+
+- set `DEBUG = False`,
+- when an action fails, the browser is told nothing about why: the error is logged on the server (by Django for an ordinary action, on the `pyblade.live` logger for a [streamed](/live-components/live-directives#pbstream) one) and the page gets a generic message,
+- a `PermissionError` you raise in an action is the exception: its message is shown to the user, as the answer to a refused request. Write it for them: `PermissionError("You can't delete this post.")`.
+
+## Sessions, cookies and HTTPS
+
+Everything PyBlade protects assumes the connection between the browser and your server is not being read or altered. That is what HTTPS is for, and Django has the settings to insist on it. In production, at least:
+
+```python title="settings.py"
+DEBUG = False
+ALLOWED_HOSTS = ["example.com"]
+
+SECURE_SSL_REDIRECT = True          # send every http:// request to https://
+SESSION_COOKIE_SECURE = True        # the session cookie never travels over http
+CSRF_COOKIE_SECURE = True           # nor does the CSRF cookie
+SECURE_HSTS_SECONDS = 31536000      # browsers remember to use https for a year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_CONTENT_TYPE_NOSNIFF = True  # already the default
+```
+
+Django can audit these for you. Run it before every deployment, and treat each warning as a task:
+
+```bash
+python manage.py check --deploy
+```
+
+Behind a reverse proxy that terminates HTTPS, also tell Django how to know a request was secure (`SECURE_PROXY_SSL_HEADER`), and only do that if the proxy is the only way in and always sets the header. Otherwise a client can set it and pretend.
+
+Keep `SESSION_COOKIE_HTTPONLY = True` (it is the default) so scripts on the page can't read the session. A session cookie that JavaScript can't read can't be stolen by a script that got in.
+
+## Content Security Policy
+
+A Content Security Policy (CSP) is a header that tells the browser which scripts, styles and images the page may load. It is the second line of defense after escaping: if a script *does* get into a page, a good policy keeps it from running or from sending your users' data anywhere.
+
+PyBlade works with a strict policy, with two things to know:
+
+- PyBlade's own script is loaded from your own domain (`/pyblade/live/assets/js/`), so `script-src 'self'` covers it.
+- `@script` blocks are inline scripts. A policy that forbids inline scripts blocks them unless it carries a **nonce**. Give your layout's `<script>` a nonce and PyBlade uses it for the scripts it runs (see [JavaScript](#javascript)).
+
+```html
+<script nonce="{{ request.csp_nonce }}">/* your own script */</script>
+```
+
+`request.csp_nonce` is what a CSP package such as `django-csp` provides. Prefer a nonce over `'unsafe-inline'`: the second turns off most of what a CSP is for.
+
+## Secrets and configuration
+
+- **`SECRET_KEY`** signs your live components' state, your sessions and your password-reset links. Read it from the environment (`os.environ["SECRET_KEY"]`), never write it into a file you commit, and use a different one in each environment.
+- **Rotating it** is safe but disruptive: sessions end and every page already open has to be loaded again. Do it right away if it leaked, then investigate.
+- **`pyblade.toml` holds no secrets.** It describes how the project is laid out and how the live endpoints behave, and is meant to be committed. Keep passwords, tokens and keys in the environment or a secret manager.
+- **Public properties are not a place for secrets** either: they are written into the page, as the [live components](#what-the-browser-holds) section explains.
+
+## Other frameworks
+
+Django is the framework PyBlade is fully supported in today. In Flask, FastAPI and the others, PyBlade renders your templates and nothing else, which changes what you can rely on:
+
+| | Django | Flask, FastAPI and others |
+|---|---|---|
+| Output escaping, expression sandbox | Yes | Yes |
+| Live components | Yes | Not yet |
+| CSRF protection for forms | Django's middleware, `@csrf` | Yours: the framework's own, or an extension |
+| Rate limits | Built in, for live endpoints | Yours |
+| Signed state | Yes, with `SECRET_KEY` | Not applicable |
+
+Nothing else about the rest of this page changes: escape by default, don't build templates from user input, scope your queries, authorize where the work happens. Add what the framework doesn't give you, such as CSRF tokens (`Flask-WTF`, `starlette-csrf`), secure cookies and HTTPS redirects. See [Frameworks](/frameworks) for how each one is connected.
+
+## Logging and monitoring
+
+You can only respond to what you can see.
+
+- Keep Django's logging on in production and send errors somewhere somebody looks (an error tracker, a log service). PyBlade tells the browser nothing about a failure, so the log is the only place to learn what happened.
+- Log the interesting refusals: a `PermissionError` in an action, or a `429`, is a signal. A single one is a mistake; a hundred from one address is someone testing your limits.
+- Log **who** did **what**, not the data. Passwords, tokens and personal details do not belong in a log file.
+- Watch the `pyblade.live` logger: it is where [streamed](/live-components/live-directives#pbstream) actions report errors.
+
+## Dependencies and updates
+
+- PyBlade is in an experimental phase, and security fixes are made on the **latest release only**. Keep it up to date, and read the release notes when you upgrade.
+- Pin your dependencies with a lock file (`uv.lock`, `poetry.lock`, `requirements.txt` with hashes), so that what you tested is what you deploy, and audit them regularly (`pip-audit`, or your platform's dependency alerts).
+- The same goes for Django and any sanitizer you use: a security fix that isn't installed protects no one.
+- Keep an eye on the JavaScript you add yourself. Scripts from a CDN run with full access to your page: pin their version, and use Subresource Integrity (`integrity="sha384-..."`) where you can.
+
+## Before going to production
+
+| Check | Why |
+|---|---|
+| `DEBUG = False` | Error pages show your source code and settings |
+| `ALLOWED_HOSTS` set | Stops host-header tricks |
+| `python manage.py check --deploy` is clean | Django audits its own security settings |
+| HTTPS everywhere, secure cookies, HSTS | Everything else assumes nobody reads or edits the traffic |
+| `SECRET_KEY` secret, from the environment | It signs the state of every live component |
+| `CsrfViewMiddleware` enabled, `@csrf` in forms | Stops other sites from posting in your users' name |
+| No `{!! !!}` on user content, or sanitized first | Unescaped output runs whatever it contains |
+| No user input in template sources | A template is code |
+| User-supplied URLs checked | `javascript:` links survive HTML escaping |
+| Only what a page needs in its context | What is in the context can be reached by the template |
+| Secrets only in `_private` properties | Public properties are visible in the page |
+| Actions authorize, in the action | Any public method can be called by anyone |
+| Queries scoped to the current user | An id in a request can be changed |
+| Properties and action arguments validated | The browser can set them to anything |
+| Models saved with `update_fields` or a form | A property can't write a field you didn't mean |
+| Upload fields validated (`ImageField`, `MaxFileSize`) | Only declared, checked files are accepted |
+| A Content Security Policy, with a nonce for `@script` | A second line of defense against injected scripts |
+| A shared cache with several workers | Rate limits are counted per process otherwise |
+| `trust_forwarded` only behind your own proxy | Otherwise clients choose their own address |
+| A proxy or firewall in front of the application | Rate limits don't stop distributed attacks |
+| Errors and refusals logged, and watched | You can't respond to what you can't see |
+| PyBlade, Django and your other dependencies up to date | Fixes only protect you once installed |
+
+## Reporting a vulnerability
+
+If you find a security problem in PyBlade itself, **don't** open a public issue or post it on the feedback platform. Report it privately, by email to [security@pyblade.com](mailto:security@pyblade.com) or through [GitHub's private vulnerability reporting](https://github.com/antaresmugisho/pyblade/security/advisories/new), and include:
+
+- the PyBlade version and the framework it runs under,
+- what an attacker could do with it,
+- the smallest template, component or request that reproduces it.
+
+You will get an acknowledgement, updates while a fix is prepared, and credit in the release notes unless you would rather not be named.
+
+Some things are not vulnerabilities in PyBlade but choices an application makes: markup written with `{!! !!}`, templates built from user input, actions that don't check the user, running with `DEBUG = True` in production, or a `SECRET_KEY` others know. Those are the parts of this page that are left to you.

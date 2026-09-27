@@ -2,6 +2,7 @@
   "title": "PyBlade CLI",
   "pages": [
     "overview",
-    "commands"
+    "commands",
+    "custom-commands"
   ]
 }

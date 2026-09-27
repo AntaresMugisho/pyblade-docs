@@ -47,6 +47,25 @@ This command will create the file: `components/alert.html`
     It is important to avoid naming your component `slot`, as this could lead to conflicts with PyBlade's built-in `pb-slot` tag used for creating new [slots](#slots). Rendering a component named `slot` will interfere with the `slot` system, causing potential issues.
 </Callout>
 
+## Where components are found
+
+PyBlade looks for a component in your project's `components/` folder (the folder set by [`paths.components`](/configuration#paths)).
+
+In a **Django** project, an app can bring components of its own, in a `components/` folder inside the app, next to its `templates/`. They are found after the project's, in the order your apps are listed in `INSTALLED_APPS`:
+
+```text
+components/badge.html              # 1. the project's own
+apps/billing/components/badge.html # 2. then each app's
+```
+
+This means:
+
+- an app's components need nothing to be registered: if the app is installed, its components can be used from every template, with the same syntax as the project's,
+- the project can **replace** a component an app provides by writing one with the same name in its own `components/` folder,
+- live components work the same way, and a live component keeps its template next to its class, wherever it is.
+
+`pyblade make:component --app billing` creates a component in an app. See [creating files in a Django app](/cli/commands#creating-files-in-a-django-app).
+
 ## Rendering components
 
 The **preferred way** to include a component in your template is by using a **PyBlade component tag**. Component tags start with `pb-`, followed by the component file name without extension.

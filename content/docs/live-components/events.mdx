@@ -97,7 +97,7 @@ PyBlade Live allows you to listen for events directly on individual child compon
 
 ```html
 <div>
-    <live:edit-post pb-saved="refresh">
+    <live:edit-post pb:saved="refresh">
 
     <!-- ... -->
 </div>
@@ -105,16 +105,16 @@ PyBlade Live allows you to listen for events directly on individual child compon
 
 In the above scenario, if the `edit-post` child component dispatches a `saved` event, the parent's `refresh` will be called and the parent will be refreshed.
 
-Instead of passing `refresh`, you can pass any method you normally would to something like `pb-click`. Here's an example of calling a `close()` method that might do something like close a modal dialog:
+Instead of passing `refresh`, you can pass any method you normally would to something like `pb:click`. Here's an example of calling a `close()` method that might do something like close a modal dialog:
 
 ```html
-<live:edit-post pb-saved="close">
+<live:edit-post pb:saved="close">
 ```
 
 If the child dispatched parameters along with the request, for example `self.emit('saved', post_id=1)`, you can forward those values to the parent method using the following syntax:
 
 ```html
-<live:edit-post pb-saved="close(event.detail.post_id)">
+<live:edit-post pb:saved="close(event.detail.post_id)">
 ```
 
 ## Dispatching directly to another component
@@ -151,7 +151,7 @@ class postCreate(LiveComponent):
 You can dispatch events directly from your PyBlade templates using the `emit()` function. This is useful when you want to trigger an event from a user interaction, such as a button click:
 
 ```html
-<button pb-click="emit('show-post-modal', id={{ post.id }})">
+<button pb:click="emit('show-post-modal', id={{ post.id }})">
     EditPost
 </button>
 ```
@@ -161,7 +161,7 @@ In this example, when the button is clicked, the `show-post-modal` event will be
 If you want to dispatch an event directly to another component you can use the `emit().to()` modifier:
 
 ```html
-<button pb-click="emit('show-post-modal', id={{ post.id }}).to('PostList')">
+<button pb:click="emit('show-post-modal', id={{ post.id }}).to('PostList')">
     EditPost
 </button>
 ```
@@ -170,74 +170,76 @@ In this example, when the button is clicked, the `show-post-modal` event will be
 
 ## Using JavaScript to interact with events
 
-PyBlade Live's event system becomes much more powerful when you interact with it from JavaScript inside your application. This unlocks the ability for any other JavaScript in your app to communicate with PyBlade Live components on the page.
+PyBlade Live's event system becomes much more powerful when you interact with it from JavaScript. Any JavaScript on the page can hear the events components emit, and emit events that components listen for.
 
 ### Listening for events inside component scripts
 
-You can easily listen for the `post-created` event inside your component's template from a `@script` directive like so:
+In a component's [`@script`](/live-components/live-components#running-javascript-with-script), listen for an event with `$pb.$on()`:
 
 ```html
 @script
 <script>
-    py.on('post-created', () => {
+    $pb.$on('post-created', (data) => {
         //
     });
 </script>
 @endscript
 ```
 
-The above snippet would listen for the `post-created` from the component it's registered within. If the component is no longer on the page, the event listener will no longer be triggered.
+The callback is given the data the event carries. It hears the event whichever component emitted it, and stops being called once its own component has left the page.
 
-### Dispatching events from component scripts
-
-Additionally, you can dispatch events from within a component's `@script` like so:
-
-```html
-@script
-<script>
-    py.emit('post-created');
-</script>
-@endscript
-```
-
-When the above `@script` is run, the `post-created` event will be dispatched to the component it's defined within.
-
-To dispatch the event only to the component where the script resides and not other components on the page (preventing the event from "bubbling" up), you can use `emit().self()`.
+`$on()` returns a function that stops listening sooner:
 
 ```js
-py.emit('post-created').self();
+const stop = $pb.$on('post-created', () => { /* ... */ });
+
+stop();
 ```
 
-You can pass any additional parameters to the event by passing an object as a second argument to `emit()`:
+### Emitting events from component scripts
+
+Emit an event from a component's `@script` with `$pb.$emit()`:
 
 ```html
 @script
 <script>
-    py.emit('post-created', { refresh_posts: true });
+    $pb.$emit('post-created');
 </script>
 @endscript
 ```
 
-You can now access those event parameters from both your PyBlade Live class and also other JavaScript event listeners.
+The event is emitted by the component the script belongs to, exactly as `emit()` in a `pb:click` would emit it: every component listening for it with `@on` hears it. `$pb.$dispatch()` is the same thing under another name.
 
-Here's an example of receiving the `refresh_posts` parameter within a PyBlade Live class:
+Pass any parameters as an object, the second argument of `$emit()`:
+
+```html
+@script
+<script>
+    $pb.$emit('post-created', { refresh_posts: true });
+</script>
+@endscript
+```
+
+Those parameters reach both PyBlade Live classes and JavaScript listeners. Here's the `refresh_posts` parameter received by a PyBlade Live class:
 
 ```python
-from pyblade import LiveComponent
-# ...
+from pyblade.live import LiveComponent, on
+
+
+class PostList(LiveComponent):
 
     @on("post-created")
-    def handle_new_post(self, refresh_posts: bool = false):
+    def handle_new_post(self, refresh_posts: bool = False):
         ...
 ```
 
-You can also access the `refresh_posts` parameter from a JavaScript event listener from the event's `detail` property:
+And by a JavaScript listener:
 
 ```html
 @script
 <script>
-    py.on('post-created', (event) => {
-        let refreshPosts = event.detail.refresh_posts
+    $pb.$on('post-created', (data) => {
+        let refreshPosts = data.refresh_posts;
 
         // ...
     });
@@ -245,29 +247,28 @@ You can also access the `refresh_posts` parameter from a JavaScript event listen
 @endscript
 ```
 
+### Listening for events from global JavaScript
 
-### Listening for PyBlade Live events from global JavaScript
-
-Alternatively, you can listen for PyBlade Live events globally using `PyBlade Live.on` from any script in your application:
+Outside a component, use the `PyBlade` object. `PyBlade.on()` listens for an event emitted by any component on the page:
 
 ```html
 <script>
     document.addEventListener('live:init', () => {
-       PyBlade Live.on('post-created', (event) => {
-           //
-       });
+        PyBlade.on('post-created', (event) => {
+            console.log(event.detail.refresh_posts);
+        });
     });
 </script>
 ```
 
-The above snippet would listen for the `post-created` event dispatched from any component on the page.
+Unlike `$pb.$on()`, `PyBlade.on()` hands the callback the browser event itself, with the parameters in `event.detail`. The `live:init` event is dispatched on the `document` once PyBlade has started, so a script that runs before it can wait for it.
 
-If you wish to remove this event listener for any reason, you can do so using the returned `cleanup` function:
+`PyBlade.on()` returns a `cleanup` function that removes the listener:
 
 ```html
 <script>
     document.addEventListener('live:init', () => {
-        let cleanup = PyBlade Live.on('post-created', (event) => {
+        let cleanup = PyBlade.on('post-created', (event) => {
             //
         });
 
@@ -277,3 +278,12 @@ If you wish to remove this event listener for any reason, you can do so using th
 </script>
 ```
 
+### Emitting events from global JavaScript
+
+`PyBlade.emit()` emits an event from outside any component. It reaches every component listening for it, as one emitted by a component would:
+
+```js
+PyBlade.emit('post-created', { refresh_posts: true });
+```
+
+`PyBlade.dispatch()` is the same thing under another name.

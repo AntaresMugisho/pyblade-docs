@@ -1,0 +1,188 @@
+---
+title: "Custom commands"
+description: "Write your own pyblade commands with the BaseCommand class."
+---
+
+Every project ends up with tasks it repeats: importing data, sending a report, clearing something out. PyBlade lets you write those as commands of their own, run with `pyblade`, with the same help, arguments and options as the built-in ones.
+
+To write one you only have to learn a single class, `BaseCommand`, whatever framework your project uses.
+
+## Creating a command
+
+```bash
+pyblade make:command report:send -d "Send the weekly report"
+```
+
+This creates a file in `management/commands/` (the folder set by [`paths.commands`](/configuration#paths)):
+
+```python title="management/commands/report:send.py"
+from pyblade.cli import BaseCommand
+
+
+class Command(BaseCommand):
+    """
+    Send the weekly report
+    """
+
+    name = "report:send"
+    aliases = []  # Other possible names for the command
+
+    def config(self):
+        """Setup command arguments and options here"""
+        ...
+
+    def handle(self, **kwargs):
+        """Execute the 'pyblade report:send' command"""
+        ...
+```
+
+Every command is a class called `Command`, inherits from `BaseCommand`, and has three parts:
+
+| Part | What it is |
+|---|---|
+| `name` | What you type after `pyblade`. Required. Use `:` to group related commands (`report:send`, `report:list`). |
+| `config()` | Declares the command's arguments and options. |
+| `handle(**kwargs)` | What the command does. It receives the arguments and options as keyword arguments. |
+
+The **docstring** of the class is the description shown by `pyblade` and `pyblade report:send --help`. A command can also have `aliases`, other names it answers to.
+
+Your command shows up under **Custom Commands** when you run `pyblade`, with no registration needed.
+
+Commands are looked for from the root of your project (where `pyblade.toml` is), so `pyblade` finds them from any folder of it. PyBlade puts the project root on Python's path for you, so a command can import your own code.
+
+## Arguments and options
+
+Declare them in `config()`:
+
+```python
+def config(self):
+    self.add_argument("recipient")
+    self.add_option("-f", "--format", help="The format of the report", default="pdf")
+    self.add_flag("--dry-run", help="Show what would be sent, without sending it")
+```
+
+| Method | Declares |
+|---|---|
+| `add_argument(name, required=True, default=None)` | A positional value: `pyblade report:send ada@example.com`. |
+| `add_option(*names, help, required=False, default=None)` | A named value: `-f html` or `--format html`. |
+| `add_flag(*names, help, required=False)` | A switch, true when present: `--dry-run`. |
+
+Then read them in `handle()`. Each one arrives as a keyword argument named after it, with dashes turned into underscores (`--dry-run` becomes `dry_run`):
+
+```python
+def handle(self, **kwargs):
+    recipient = kwargs["recipient"]
+    fmt = kwargs["format"]
+    dry_run = kwargs["dry_run"]
+```
+
+You can also ask for them by name, from anywhere in your command (in one of your own helper methods, for example), without passing `kwargs` around:
+
+| Method | Returns |
+|---|---|
+| `self.argument("recipient")` | The value of an argument, or `None` if the command has no such argument |
+| `self.option("--dry-run")` | The value of an option or flag, or `None` if the command has no such option. The name may be written `--dry-run`, `dry-run` or `dry_run`. |
+| `self.get("format", "pdf")` | The value of an argument or option, or the default you give when it was left out |
+
+Arguments and options are also shown in the command's `--help`, which is built for you:
+
+```text
+Usage: pyblade report:send [OPTIONS] RECIPIENT
+
+  Send the weekly report.
+
+Options:
+  -f, --format TEXT  The format of the report
+  --dry-run          Show what would be sent, without sending it
+  --help             Show this message and exit.
+```
+
+## Talking to the user
+
+`BaseCommand` has methods for writing to the terminal, so your command looks like the built-in ones.
+
+| Method | Writes |
+|---|---|
+| `self.info(message)` | An information message |
+| `self.success(message)` | A green check mark and your message |
+| `self.warning(message)` | A warning |
+| `self.error(message)` | An error |
+| `self.tip(message)` | A tip |
+| `self.line(message)` / `self.print(message)` | A plain line. Supports [Rich](https://rich.readthedocs.io/en/stable/markup.html) markup: `[bold]like this[/bold]`. |
+| `self.new_line(n=1)` | Empty lines |
+| `self.status(message)` | A spinner, used as `with self.status("Working..."):` |
+| `self.track(items, description)` | A progress bar over a list, used as `for item in self.track(items, "Building"):` |
+
+## Asking questions
+
+To ask something of the person running the command:
+
+| Method | Asks | Returns |
+|---|---|---|
+| `self.ask(message, default="")` | For some text | A string |
+| `self.confirm(message, default=False)` | Yes or no | A boolean |
+| `self.choice(message, choices, default=None)` | To pick one of a list | The chosen item |
+| `self.checkbox(message, choices, default=None)` | To pick several from a list | A list |
+| `self.secret(message)` | For a password, which isn't shown as it is typed | A string |
+
+```python
+if not self.confirm("Send the report now?", default=True):
+    self.warning("Nothing was sent.")
+    return
+```
+
+## A complete example
+
+```python title="management/commands/report:send.py"
+from pyblade.cli import BaseCommand
+
+
+class Command(BaseCommand):
+    """
+    Send the weekly report.
+    """
+
+    name = "report:send"
+    aliases = ["send:report"]
+
+    def config(self):
+        self.add_argument("recipient")
+        self.add_option("-f", "--format", help="The format of the report", default="pdf")
+        self.add_flag("--dry-run", help="Show what would be sent, without sending it")
+
+    def handle(self, **kwargs):
+        recipient = kwargs["recipient"]
+        fmt = kwargs["format"]
+
+        if not kwargs["dry_run"] and not self.confirm(f"Send a {fmt} report to {recipient}?", default=True):
+            self.warning("Nothing was sent.")
+            return
+
+        for _ in self.track(range(3), "Building the report"):
+            ...  # build one part of the report
+
+        self.success(f"Report sent to {recipient}")
+```
+
+```bash
+pyblade report:send ada@example.com
+pyblade send:report ada@example.com --dry-run -f html
+```
+
+## Using your project's code
+
+A command is ordinary Python, so it can import your project: its models, its helpers, its services. In a Django project, Django is already set up when your command runs, so you can use your models directly:
+
+```python
+from blog.models import Post
+
+def handle(self, **kwargs):
+    self.success(f"{Post.objects.count()} posts")
+```
+
+## Good to know
+
+- A file whose name starts with `_` is ignored, so you can keep helpers next to your commands.
+- Commands are found in the folder set by [`paths.commands`](/configuration#paths), `management/commands` by default. `pyblade make:command` writes there too.
+- A command that fails to load is reported when you run `pyblade`, with the reason, and doesn't stop the other commands from working.
+- Commands don't have to be small. Split a long `handle()` into methods of your own, starting with `_` to keep them apart from the ones `BaseCommand` uses.

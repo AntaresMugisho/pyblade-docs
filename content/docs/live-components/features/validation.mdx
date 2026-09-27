@@ -25,7 +25,7 @@ class PostCreate(LiveComponent):
 		return self.redirect('/posts')
 
 	def render(self):
-		return self.view('live.create-post')
+		return self.render_template('live.create-post')
 ```
 
 As you can see, PyBlade Live provides a `validate()` method you can call inside any component action to validate the component’s state. It returns the validated data, which you can safely use — for example, to create a database record.
@@ -33,11 +33,11 @@ As you can see, PyBlade Live provides a `validate()` method you can call inside 
 On the frontend, validation errors are displayed using existing PyBlade directives like `@error`.
 
 ```blade
-<form pb-submit="save">
-	<input type="text" pb-model="title">
+<form pb:submit="save">
+	<input type="text" pb:model="title">
 	<div>@error('title') {{ message }} @enderror</div>
 
-	<textarea pb-model="content"></textarea>
+	<textarea pb:model="content"></textarea>
 	<div>@error('content') {{ message }} @enderror</div>
 
 	<button type="submit">Save</button>
@@ -72,7 +72,7 @@ class PostCreate(LiveComponent):
         return self.redirect('/posts')
 
     def render(self):
-        return self.view('live.create-post')
+        return self.render_template('live.create-post')
 ```
 
 <Callout type="info">
@@ -208,7 +208,7 @@ class PostCreate(LiveComponent):
 ```
 
 <Callout type="warn" title={"The `validators()` method doesn't validate on data updates"}>
-When defining rules via the `validators()` method, PyBlade Live will ONLY use these validation rules to validate properties when you run `self.validate()`. This is different than standard `@validators` decorators which are applied every time a field is updated via something like `pb-model`. To apply these validation rules to a property every time it's updated, you can still use `@validators` with no extra parameters.
+When defining rules via the `validators()` method, PyBlade Live will ONLY use these validation rules to validate properties when you run `self.validate()`. This is different than standard `@validators` decorators which are applied every time a field is updated via something like `pb:model`. To apply these validation rules to a property every time it's updated, you can still use `@validators` with no extra parameters.
 </Callout>
 
 <Callout type="warn" title={"Don't conflict with PyBlade Live's mechanisms"}>
@@ -254,16 +254,16 @@ As you can see, instead of listing out each property individually, we can retrie
 Also, when referencing the property names in the template, you must prepend `form.` to each instance:
 
 ```blade
-<form pb-submit="save">
-	<input type="text" pb-model="form.title">
+<form pb:submit="save">
+	<input type="text" pb:model="form.title">
     <div>@error('form.title') {{ message }} @enderror</div>
 
-	<textarea pb-model="form.content"></textarea>
+	<textarea pb:model="form.content"></textarea>
     <div>@error("form.content") {{ message }} @enderror</div>
 
 	<button type="submit">Save</button>
 </form>
 ```
 
-Form classes are a useful abstraction for most larger datasets and a variety of additional features that make them even more powerful. For more information, check out the comprehensive [form objects documentation](/docs/live/forms#extracting-a-form-object).
+Form classes are a useful abstraction for most larger datasets and a variety of additional features that make them even more powerful. For more information, check out the comprehensive [form objects documentation](/live-components/forms#extracting-a-form-object).
 

@@ -1,0 +1,249 @@
+---
+title: "Configuration"
+description: "Every option of pyblade.toml, its default value, and how PyBlade decides where its configuration comes from."
+icon: Settings
+---
+
+PyBlade works without any configuration: every option has a default, and a project only writes down what it wants to be different. When you start a project with `pyblade init`, a `pyblade.toml` is created with the few things PyBlade needs to know about it:
+
+```toml title="pyblade.toml"
+[project]
+name = "my_project"
+pyblade_version = "0.3.0"
+
+[stack]
+framework = "django"
+css_framework = "tailwindcss"
+css_framework_version = "4"
+package_manager = "uv"
+js_package_manager = "npm"
+
+[paths]
+settings = "my_project/settings.py"
+```
+
+Options are grouped in tables (`[project]`, `[stack]`, `[paths]`, `[live_components]` and `[i18n]`). Table and key names are not case-sensitive.
+
+## Where the configuration lives
+
+PyBlade reads its configuration from one of two files:
+
+- **`pyblade.toml`**, a file of its own, at the root of your project. This is what `pyblade init` creates.
+- **`pyproject.toml`**, if you would rather have fewer files in your project. Write the same tables, with `tool.pyblade.` in front of their names:
+
+```toml title="pyproject.toml"
+[tool.pyblade.stack]
+framework = "fastapi"
+
+[tool.pyblade.paths]
+templates = "views"
+
+[tool.pyblade.live_components.throttle]
+actions = "60/minute"
+```
+
+A `pyproject.toml` only counts as a PyBlade configuration if it holds a `[tool.pyblade]` table, so that every Python project isn't mistaken for a PyBlade one.
+
+<Callout type="info">
+The `pyblade` commands write to `pyblade.toml`, for example when `pyblade init` records the framework. They never rewrite your `pyproject.toml`, so if you keep your configuration there, a command that wants to save a change will refuse to. Make that change by hand, or move the `[tool.pyblade]` table into a `pyblade.toml`.
+</Callout>
+
+## How configuration is loaded
+
+When PyBlade reads an option, it goes through these sources and stops at the first one that says something. From the highest priority to the lowest:
+
+1. **What the running program said.** An option set in code for the current run, such as by a test that uses `config.override(...)`. It is never written to a file.
+2. **The framework's own settings.** In a Django project, the `PYBLADE` dictionary in `settings.py`. See [Frameworks](/frameworks#pyblades-own-configuration-in-settingspy).
+3. **The configuration file.** `pyblade.toml`, or `pyproject.toml`'s `[tool.pyblade]` table.
+4. **PyBlade's defaults**, listed in the tables below.
+
+The sources are merged table by table, not replaced. If `pyblade.toml` sets `actions = "60/minute"` and `settings.py` sets `uploads = "5/minute"`, both apply, and every other throttle option keeps its default.
+
+```toml title="pyblade.toml"
+[live_components.throttle]
+actions = "60/minute"
+```
+
+```python title="settings.py"
+PYBLADE = {"live_components": {"throttle": {"uploads": "5/minute"}}}
+```
+
+### How the file is found
+
+PyBlade looks for the configuration file starting from the directory the program runs in, then in each parent directory up to the root of the disk. That is why `pyblade` commands work from any folder of your project.
+
+In each directory it looks for `pyblade.toml` first, then for a `pyproject.toml` holding a `[tool.pyblade]` table. The first one it finds is the one used, and the directory that holds it is the **root** of the project: every relative path in the configuration is relative to it.
+
+A server isn't always started from your project's directory (WSGI servers, `systemd` units and cron jobs often aren't). When nothing is found from the working directory, PyBlade also tries:
+
+1. the directory named by the **`PYBLADE_ROOT`** environment variable,
+2. in Django, the project's **`BASE_DIR`**.
+
+```bash
+PYBLADE_ROOT=/srv/my_project gunicorn my_project.wsgi
+```
+
+### Environment variables
+
+A few options for translations can also be set with environment variables. They win over the configuration file:
+
+| Variable | Overrides |
+|---|---|
+| `PYBLADE_ROOT` | Where the project is (see above) |
+| `PYBLADE_LOCALE_DIR` | [`i18n.directory`](#i18n) |
+| `PYBLADE_TRANSLATION_DOMAIN` | [`i18n.domain`](#i18n) |
+| `PYBLADE_DEFAULT_LOCALE` | The locale, when [`i18n.locale`](#i18n) is empty |
+
+## Options
+
+Every option is listed below with its default value. The tables only need to hold what you change.
+
+### `[project]`
+
+What the project is called.
+
+| Key | Default | Description |
+|---|---|---|
+| `name` | `""` | The name of the project. Set by `pyblade init`. |
+| `pyblade_version` | `""` | The version of PyBlade the project was created with. Set by `pyblade init`. |
+
+### `[stack]`
+
+What the project is built with.
+
+| Key | Default | Description |
+|---|---|---|
+| `framework` | `""` | The web framework: `"django"`, `"flask"`, `"fastapi"`... PyBlade uses it to choose framework-specific behavior (`@static`, translations, debug mode) and to decide how the `pyblade` commands work. When empty, PyBlade tries to work it out. |
+| `css_framework` | `""` | The CSS framework, e.g. `"tailwindcss"`. Set by `pyblade tailwind:config`. |
+| `css_framework_version` | `""` | Its major version, e.g. `"4"`. |
+| `package_manager` | `""` | The Python package manager used to install packages: `"uv"`, `"poetry"`, `"pip"`... When empty, PyBlade detects it from the lock file in your project, then from what is installed. |
+| `js_package_manager` | `""` | The JavaScript package manager: `"npm"`, `"pnpm"`, `"yarn"`, `"bun"`. Detected the same way when empty. |
+
+### `[paths]`
+
+Where the parts of the project are. A relative path is relative to the **root of the project** (the directory that holds the configuration file), wherever the server or the command is started from, so a server launched by `gunicorn`, `systemd` or `cron` from another directory finds the same templates and components. An absolute path is used as it is.
+
+| Key | Default | Description |
+|---|---|---|
+| `settings` | `""` | The path to the framework's settings file, e.g. `"my_project/settings.py"`. Used by the commands. Django only. |
+| `templates` | `"templates"` | The folder that holds your templates. For Django, this is also the name of the folder looked for in each app. For frameworks that don't say where templates are, this is where PyBlade looks. |
+| `components` | `"components"` | Where `pyblade make:component` and `pyblade make:live` create your [components](/components). |
+| `commands` | `"management/commands"` | Where the commands you write with `pyblade make:command` are kept. |
+
+### `[live_components]`
+
+Options for [live components](/live-components/introduction).
+
+| Key | Default | Description |
+|---|---|---|
+| `own_folder` | `true` | Whether `pyblade make:live` puts each component's class and template in a folder of its own. Set to `false` to have them side by side. |
+| `paginator` | `""` | The default template used to render pagination links. |
+| `default_layout` | `"layouts.app"` | The layout a full-page live component is rendered in when it doesn't name one. |
+
+### `[live_components.throttle]`
+
+Limits how much a single client may ask of the live endpoints. A client is the signed-in user, or the IP address for everybody else. Read [Rate limits](/security#rate-limits) before relaxing these.
+
+| Key | Default | Description |
+|---|---|---|
+| `enabled` | `true` | Set to `false` to turn all of the limits off. |
+| `actions` | `"120/minute"` | Requests to the live endpoint: actions, property updates and events. |
+| `uploads` | `"20/minute"` | Files sent for uploads. |
+| `max_body` | `"1mb"` | The largest request the live endpoint accepts, refused before it is read. |
+| `max_streams` | `16` | How many [streamed](/live-components/live-directives#pbstream) actions may run at once, each holding a thread. |
+| `trust_forwarded` | `false` | Whether to count clients by the `X-Forwarded-For` header. Only turn it on behind a proxy you control. |
+
+A rate is written as `count/period`, where the period is `second`, `minute`, `hour` or `day` (`"5/second"`, `"1000/hour"`). A size is a number of bytes or a number with a unit (`"500kb"`, `"1mb"`, `"2gb"`). Anything else is refused with an error that says how to write it.
+
+### `[i18n]`
+
+Languages and translations.
+
+| Key | Default | Description |
+|---|---|---|
+| `locale` | `"en"` | The language templates are rendered in, outside Django. In Django, the active language is used. |
+| `fallback_locale` | `"en"` | The language to use when a translation is missing. |
+| `directory` | `"locale"` | The folder that holds your translation files, relative to the root of the project. Also used by `pyblade messages:make` and `messages:compile`. |
+| `domain` | `"pyblade"` | The name of the translation files (`pyblade.po`). |
+| `languages` | `[]` | The languages your project offers, as a list of `[code, name]` pairs, for frameworks that don't have their own list. In Django, `LANGUAGES` is used. |
+
+```toml title="pyblade.toml"
+[i18n]
+locale = "fr"
+languages = [["en", "English"], ["fr", "Français"]]
+```
+
+## A complete example
+
+Every default written out, so that you can see what each option looks like. You would never need all of it: a real file only holds what differs.
+
+```toml title="pyblade.toml"
+[project]
+name = ""
+pyblade_version = ""
+
+[stack]
+framework = ""
+css_framework = ""
+css_framework_version = ""
+package_manager = ""
+js_package_manager = ""
+
+[paths]
+settings = ""
+templates = "templates"
+components = "components"
+commands = "management/commands"
+
+[live_components]
+own_folder = true
+paginator = ""
+default_layout = "layouts.app"
+
+[live_components.throttle]
+enabled = true
+actions = "120/minute"
+uploads = "20/minute"
+max_body = "1mb"
+max_streams = 16
+trust_forwarded = false
+
+[i18n]
+locale = "en"
+fallback_locale = "en"
+directory = "locale"
+domain = "pyblade"
+languages = []
+```
+
+The same, in a `pyproject.toml`, only with the prefix:
+
+```toml title="pyproject.toml"
+[tool.pyblade.stack]
+framework = "django"
+
+[tool.pyblade.live_components.throttle]
+actions = "60/minute"
+```
+
+## Reading the configuration from code
+
+The configuration is available in Python, which is useful for your own commands and tests:
+
+```python
+from pyblade.config import config
+
+config.stack.framework                       # "django"
+config.live_components.throttle.actions      # "120/minute"
+config.paths.templates                       # Path("templates")
+config.get("i18n.locale", "en")              # a dotted key, with a default
+```
+
+An option PyBlade doesn't have raises an `AttributeError` that says so, and, for an option that was moved, says where it went. Options whose value is a location on disk (everything in `[paths]`, and `i18n.directory`) are handed to you as a `Path`, absolute when the project is found (`paths.settings` is the exception: it is a module to import, so it stays as written).
+
+In tests, change an option for as long as a block runs, without touching any file:
+
+```python
+with config.override({"paths.templates": tmp_path}):
+    ...
+```

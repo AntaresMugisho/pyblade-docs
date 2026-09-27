@@ -18,13 +18,6 @@ export function baseOptions(): BaseLayoutProps {
         </>
       ),
     },
-    links: [
-      {
-        text: 'Documentation',
-        url: '/docs',
-        active: 'nested-url',
-      },
-    ],
     githubUrl: `https://github.com/${gitConfig.user}/pyblade`,
   };
 }

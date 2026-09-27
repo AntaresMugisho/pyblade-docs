@@ -4,7 +4,7 @@ title: "File uploads"
 
 PyBlade Live offers powerful support for uploading files within your components.
 
-First make your component inherit from `live.FileUploader` mixin. Once this mixin has been added to your component, you can use `pb-model` on file inputs as if they were any other input type and PyBlade Live will take care of the rest.
+First make your component inherit from `live.FileUploader` mixin. Once this mixin has been added to your component, you can use `pb:model` on file inputs as if they were any other input type and PyBlade Live will take care of the rest.
 
 Here's an example of a simple component that handles uploading a photo:
 
@@ -32,8 +32,8 @@ class UploadPhoto(Component, FileUploader):
 
 
 ```blade
-<form pb-submit="save">
-    <input type="file" pb-model="photo">
+<form pb:submit="save">
+    <input type="file" pb:model="photo">
 
     @error('photo') <span class="error">{{ message }}</span> @enderror
 
@@ -41,7 +41,7 @@ class UploadPhoto(Component, FileUploader):
 </form>
 ```
 
-From the developer's perspective, handling file inputs is no different than handling any other input type: Add `pb-model` to the `<input>` tag and everything else is taken care of for you.
+From the developer's perspective, handling file inputs is no different than handling any other input type: Add `pb:model` to the `<input>` tag and everything else is taken care of for you.
 
 However, more is happening under the hood to make file uploads work in PyBlade Live. Here's a glimpse at what goes on when a user selects a file to upload:
 
@@ -82,8 +82,8 @@ class UploadPhotos(Component, FileUploader):
 ```
 
 ```blade
-<form pb-submit="save">
-    <input type="file" pb-model="photos" multiple>
+<form pb:submit="save">
+    <input type="file" pb:model="photos" multiple>
 
     @error('photos.*') <span class="error">{{ message }}</span> @enderror
 
@@ -118,12 +118,12 @@ class UploadPhotos(Component, FileUploader):
 ```
 
 ```blade
-<form pb-submit="save">
+<form pb:submit="save">
     @if (photo) <!-- [!code highlight:2] -->
         <img src="{{ photo.temporary_url() }}">
     @endif
 
-    <input type="file" pb-model="photo">
+    <input type="file" pb:model="photo">
 
     @error('photo') <span class="error">{{ message }}</span> @enderror
 
@@ -157,15 +157,15 @@ Event | Description
 
 If an upload is taking a long time, a user may want to cancel it. You can provide this functionality with PyBlade Live's `cancel_upload()` method.
 
-Here's an example of creating a "Cancel Upload" button in a PyBlade Live component using `pb-click` to handle the click event:
+Here's an example of creating a "Cancel Upload" button in a PyBlade Live component using `pb:click` to handle the click event:
 
 ```blade
-<form pb-submit="save">
+<form pb:submit="save">
     <!-- File Input -->
-    <input type="file" pb-model="photo">
+    <input type="file" pb:model="photo">
 
     <!-- Cancel upload button -->
-    <button type="button" pb-click="cancel_upload('photo')">Cancel Upload</button>
+    <button type="button" pb:click="cancel_upload('photo')">Cancel Upload</button>
 
     <!-- ... -->
 </form>
@@ -182,26 +182,19 @@ Because PyBlade Live stores all file uploads temporarily before the developer ca
 
 By default, PyBlade Live will validate all temporary file uploads with the following validation rules: `file|max:12288` (Must be a file less than 12MB).
 
-If you wish to customize these rules, you can do so inside your PyBlade's configuration (`pyblade.json`) file:
+If you wish to customize these rules, you can do so inside your PyBlade's configuration (`pyblade.toml`) file:
 
-```json
-"live":{
-    "enabled": true,
-    "temporary_file_upload": { // [!code highlight:2]
-        "validators": "file|mimes:png,jpg,pdf|max:102400", // (100MB max, and only accept PNGs, JPEGs, and PDFs)
-    }
-}
+```toml title="pyblade.toml"
+[live_components.temporary_file_upload]
+# 100MB max, and only accept PNGs, JPEGs, and PDFs
+validators = "file|mimes:png,jpg,pdf|max:102400" # [!code highlight]
 ```
 
 ### Temporary upload directory
 
 Temporary files are uploaded to the specified disk's `live-tmp/` directory. You can customize this directory via the following configuration option:
 
-```json
-"live":{
-    "enabled": true,
-    "temporary_file_upload": { 
-        "directory": "tmp" // [!code highlight]
-    }
-}
+```toml title="pyblade.toml"
+[live_components.temporary_file_upload]
+directory = "tmp" # [!code highlight]
 ```

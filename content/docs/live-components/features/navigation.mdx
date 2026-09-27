@@ -6,11 +6,11 @@ Many modern web applications are built as "Single Page Applications" (SPAs). In 
 
 The alternative to a *single page application* is a *multi-page application*. In these applications, every time a user clicks a link, an entirely new HTML page is requested and rendered in the browser.
 
-While most Python web applications have traditionally been multi-page applications, PyBlade Live offers a single page application experience via a simple attribute you can add to links in your application: `pb-navigate`.
+While most Python web applications have traditionally been multi-page applications, PyBlade Live offers a single page application experience via a simple attribute you can add to links in your application: `pb:navigate`.
 
 ## Basic usage
 
-Let's explore an example of using `pb-navigate`. Below is a typical Django urls file (`my_project/my_project/urls.py`) with three PyBlade Live components defined as views:
+Let's explore an example of using `pb:navigate`. Below is a typical Django urls file (`my_project/my_project/urls.py`) with three PyBlade Live components defined as views:
 
 ```python
 from django.urls import path
@@ -23,35 +23,51 @@ urlpatterns = [
 ]
 ```
 
-By adding `pb-navigate` to each link in a navigation menu on each page, PyBlade Live will prevent the standard handling of the link click and replace it with its own, faster version:
+By adding `pb:navigate` to each link in a navigation menu on each page, PyBlade Live will prevent the standard handling of the link click and replace it with its own, faster version:
 
 ```blade
 <nav>
-    <a href="/" pb-navigate>Dashboard</a>
-    <a href="/posts" pb-navigate>Posts</a>
-    <a href="/users" pb-navigate>Users</a>
+    <a href="/" pb:navigate>Dashboard</a>
+    <a href="/posts" pb:navigate>Posts</a>
+    <a href="/users" pb:navigate>Users</a>
 </nav>
 ```
 
-Below is a breakdown of what happens when a `pb-navigate` link is clicked:
+Below is a breakdown of what happens when a `pb:navigate` link is clicked:
 
 * User clicks a link
 * PyBlade Live prevents the browser from visiting the new page
 * Instead, PyBlade Live requests the page in the background and shows a loading bar at the top of the page
-* When the HTML for the new page has been received, PyBlade Live replaces the current page's URL, `<title>` tag and `<body>` contents with the elements from the new page
+* When the HTML for the new page has been received, PyBlade Live replaces the current page's URL, its `<title>` and the part of the page that changes from one page to the next with the ones of the new page
+
+The part that changes is the element of your layout marked `pb:root`. Everything outside it — a sidebar, a header, a player — stays on the page untouched, with whatever state it holds:
+
+```html title="templates/layouts/app.html"
+<body>
+    <nav>...</nav>
+
+    <main pb:root>
+        {{ slot }}
+    </main>
+
+    @pbscripts
+</body>
+```
+
+A layout that marks no element has its whole `<body>` replaced.
 
 This technique results in much faster page load times — often twice as fast — and makes the application "feel" like a JavaScript powered single page application.
 
 <Callout type="info" title={"Pro tip !"}>
 Instead of using a URL pattern, you may use the URL name with the `@url` PyBlade directive.
 ```html
-<a href="@url('dashboard')" pb-navigate>Dashboard</a>
+<a href="@url('dashboard')" pb:navigate>Dashboard</a>
 ```
 </Callout>
 
 ## Redirects
 
-When one of your PyBlade Live components redirects users to another URL within your application, you can also instruct PyBlade Live to use its `pb-navigate` functionality to load the new page. To accomplish this, provide the `navigate` argument to the `redirect()` method:
+When one of your PyBlade Live components redirects users to another URL within your application, you can also instruct PyBlade Live to use its `pb:navigate` functionality to load the new page. To accomplish this, provide the `navigate` argument to the `redirect()` method:
 
 ```python
 return self.redirect('posts/', navigate=True)
@@ -73,7 +89,7 @@ Surprisingly, the time between a user pressing down and lifting up on the mouse 
 If you want an even more aggressive approach to prefetching, you may use the `.hover` modifier on a link:
 
 ```blade
-<a href="posts/" pb-navigate.hover>Posts</a>
+<a href="posts/" pb:navigate.hover>Posts</a>
 ```
 
 The `.hover` modifier will instruct PyBlade Live to prefetch the page after a user has hovered over the link for `60` milliseconds.
@@ -84,45 +100,84 @@ Because not all users will click a link they hover over, adding `.hover` will re
 
 ## Persisting elements across page visits
 
-Sometimes, there are parts of a user interface that you need to persist between page loads, such as audio or video players. For example, in a podcasting application, a user may want to keep listening to an episode as they browse other pages.
+Sometimes, there are parts of a user interface that you need to keep between page visits, such as audio or video players. For example, in a podcasting application, a user may want to keep listening to an episode as they browse other pages.
 
 You can achieve this in PyBlade Live with the `@persist` directive.
 
-By wrapping an element with `@persist` and providing it with a name, when a new page is requested using `pb-navigate`, PyBlade Live will look for an element on the new page that has a matching `@persist`. Instead of replacing the element like normal, PyBlade Live will use the existing DOM element from the previous page in the new page, preserving any state within the element.
+Wrap an element with `@persist` and give it a name. When a new page is visited with `pb:navigate`, PyBlade Live looks for a `@persist` of the same name on the new page. Instead of drawing the element again, it moves the element from the previous page into the new one, preserving everything about it: an audio player keeps playing, a video keeps its position, a live component inside keeps its state.
 
-Here is an example of an `<audio>` player element being persisted across pages using `@persist`:
-
-```blade
+```html
 @persist('player')
     <audio src="{{ episode.file }}" controls></audio>
 @endpersist
 ```
 
-If the above HTML appears on both pages — the current page, and the next one — the original element will be re-used on the new page. In the case of an audio player, the audio playback won't be interrupted when navigating from one page to another.
+If the above appears on both pages — the current page and the next one — the audio playback won't be interrupted when navigating from one to the other. The element doesn't have to be in the same place on both pages: it goes wherever the new page's `@persist` is. If the new page has no `@persist` of that name, the element leaves with the old page, as anything else on it would.
 
-Please be aware that the persisted element must be placed outside your PyBlade Live components. A common practice is to position the persisted element in your main layout, such as `templates/live/layouts/base.html`.
+`@persist` is for elements inside the part of the page that navigation replaces, the element marked `pb:root`. Here, the episode page shows a large player, and the episode list shows the same player in a corner:
+
+```html title="components/episode/episode.html"
+<div>
+    <h1>{{ episode.title }}</h1>
+
+    @persist('player')
+        <audio src="{{ episode.file }}" controls></audio>
+    @endpersist
+
+    <a href="/episodes/" pb:navigate>All episodes</a>
+</div>
+```
+
+```html title="components/episode_list/episode_list.html"
+<div>
+    @for(episode in episodes)
+        <a href="/episodes/{{ episode.id }}/" pb:navigate>{{ episode.title }}</a>
+    @endfor
+
+    <aside class="mini-player">
+        @persist('player')
+            <audio src="{{ now_playing.file }}" controls></audio>
+        @endpersist
+    </aside>
+</div>
+```
+
+<Callout type="info" title={"Outside pb:root, nothing needs persisting"}>
+Anything in your layout outside the element marked `pb:root` is never replaced when navigating, so it stays on the page without `@persist`.
+</Callout>
+
+### Persisting through updates
+
+A `@persist` block inside a live component is also kept as it is when that component updates. A video keeps playing while the comments under it change:
 
 ```html
-<!-- templates/live/layouts/base.html -->
+<div>
+    @persist('stream')
+        <video src="/streams/keynote.m3u8" autoplay controls></video>
+    @endpersist
 
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{{ title or 'Page Title' }}</title>
-    </head>
-    <body>
-        <main>
-            {{ slot }}
-        </main>
+    <form pb:submit="post_comment">
+        <input type="text" pb:model="body">
+        <button type="submit">Send</button>
+    </form>
 
-        @persist('player') <!-- [!code highlight:2] -->
-            <audio src="{{ episode.file }}" controls></audio>
-        @endpersist
-    </body>
-</html>
+    @for(comment in comments)
+        <p>{{ comment }}</p>
+    @endfor
+</div>
 ```
+
+### How it is rendered
+
+`@persist` wraps its content in a `<div>` carrying its name:
+
+```html
+<div data-pb-persist="player">
+    <audio src="/episodes/42.mp3" controls></audio>
+</div>
+```
+
+That attribute is how PyBlade Live finds the element in the browser. It isn't a directive to write by hand: `@persist` is the only way to persist an element.
 
 ### Highlighting active links
 
@@ -130,37 +185,37 @@ You might be used to highlighting the currently active page link in a navbar usi
 
 ```blade
 <nav>
-    <a href="/" class="@urlis('dashboard', 'font-bold text-zinc-800')">Dashboard</a>
-    <a href="posts/" class="@urlis('posts', 'font-bold text-zinc-800')">Posts</a>
-    <a href="users/" class="@urlis('users', 'font-bold text-zinc-800')">Users</a>
+    <a href="/" class="@active('dashboard')font-bold text-zinc-800@endactive">Dashboard</a>
+    <a href="posts/" class="@active('posts')font-bold text-zinc-800@endactive">Posts</a>
+    <a href="users/" class="@active('users')font-bold text-zinc-800@endactive">Users</a>
 </nav>
 ```
 
-However, this will not work inside persisted elements as they are re-used between page loads. Instead, you should use PyBlade Live's `pb-current` directive to highlight the currently active link.
+However, this will not work inside persisted elements as they are re-used between page loads. Instead, you should use PyBlade Live's `pb:current` directive to highlight the currently active link.
 
-Simply pass any CSS classes you want to apply to the currently active link to `pb-current`:
+Simply pass any CSS classes you want to apply to the currently active link to `pb:current`:
 
 ```blade
 <nav>
-    <a href="/" ... pb-current="font-bold text-zinc-800">Dashboard</a>
-    <a href="posts/" ... pb-current="font-bold text-zinc-800">Posts</a>
-    <a href="users/" ... pb-current="font-bold text-zinc-800">Users</a>
+    <a href="/" ... pb:current="font-bold text-zinc-800">Dashboard</a>
+    <a href="posts/" ... pb:current="font-bold text-zinc-800">Posts</a>
+    <a href="users/" ... pb:current="font-bold text-zinc-800">Users</a>
 </nav>
 ```
 
 Now, when the `posts/` page is visited, the "Posts" link will have a stronger font treatment than the other links.
 
-Read more in the [`pb-current` documentation](/docs/live/live-directives#pb-current).
+Read more in the [`pb:current` documentation](/live-components/live-directives#pbcurrent).
 
 ### Preserving scroll position
 
 By default, PyBlade Live will preserve the scroll position of a page when navigating back and forth between pages. However, sometimes you may want to preserve the scroll position of an individual element you are persisting between page loads.
 
-To do this, you must add `pb-scroll` to the element containing a scrollbar like so:
+To do this, you must add `pb:scroll` to the element containing a scrollbar like so:
 
 ```html
 @persist('scrollbar')
-<div class="overflow-y-scroll" pb-scroll> <!-- [!code highlight] -->
+<div class="overflow-y-scroll" pb:scroll> <!-- [!code highlight] -->
     <!-- ... -->
 </div>
 @endpersist
@@ -168,60 +223,32 @@ To do this, you must add `pb-scroll` to the element containing a scrollbar like 
 
 ## JavaScript hooks
 
-Each page navigation triggers three lifecycle hooks:
+Each page navigation dispatches two events on `window`:
 
-* `live-navigate`
-* `live-navigating`
-* `live-navigated`
+* `pb:navigating`, when a navigation starts, before the new page is requested
+* `pb:navigated`, once the new page is in place
 
-It's important to note that these three hooks events are dispatched on navigations of all types. This includes manual navigation using `PyBlade Live.navigate()`, redirecting with navigation enabled (`self.redirect(navigate=True)`), and back and forward button presses in the browser.
-
-Here's an example of registering listeners for each of these events:
+Both carry the address being visited in `event.detail.href`. They are dispatched for every navigation made by PyBlade Live: a `pb:navigate` link, `PyBlade.navigate()`, a redirect with `navigate=True`, and the browser's back and forward buttons.
 
 ```js
-document.addEventListener('live-navigate', (event) => {
-    // Triggers when a navigation is triggered.
+window.addEventListener('pb:navigating', (event) => {
+    // A navigation to event.detail.href is starting...
+});
 
-    // Can be "cancelled" (prevent the navigate from actually being performed):
-    event.preventDefault()
-
-    // Contains helpful context about the navigation trigger:
-    let context = event.detail
-
-    // A URL object of the intended destination of the navigation...
-    context.url
-
-    // A boolean [true/false] indicating whether or not this navigation
-    // was triggered by a back/forward (history state) navigation...
-    context.history
-
-    // A boolean [true/false] indicating whether or not there is
-    // cached version of this page to be used instead of
-    // fetching a new one via a network round-trip...
-    context.cached
-})
-
-document.addEventListener('live-navigating', () => {
-    // Triggered when new HTML is about to swapped onto the page...
-
-    // This is a good place to mutate any HTML before the page
-    // is navigated away from...
-})
-
-document.addEventListener('live-navigated', () => {
-    // Triggered as the final step of any page navigation...
-
-    // Also triggered on page-load instead of "DOMContentLoaded"...
-})
+window.addEventListener('pb:navigated', (event) => {
+    // The page at event.detail.href is now in place...
+});
 ```
+
+`pb:navigated` is not dispatched when the first page loads: that is the browser's own `DOMContentLoaded`.
 
 <Callout type="warn" title={"Event listeners will persist across pages"}>
 
-When you attach an event listener to the document it will not be removed when you navigate to a different page. This can lead to unexpected behaviour if you need code to run only after navigating to a specific page, or if you add the same event listener on every page. If you do not remove your event listener it may cause exceptions on other pages when it's looking for elements that do not exist, or you may end up with the event listener executing multiple times per navigation.
+When you attach an event listener to `window` or `document`, it is not removed when you navigate to a different page. This can lead to unexpected behaviour if you need code to run only after navigating to a specific page, or if you add the same event listener on every page. If you do not remove your event listener it may cause exceptions on other pages when it's looking for elements that do not exist, or you may end up with the event listener executing multiple times per navigation.
 
-An easy method to remove an event listener after it runs is to pass the option `{once: true}` as a third parameter to the `addEventListener` function.
+An easy method to remove an event listener after it runs is to pass the option `{ once: true }` as a third parameter to the `addEventListener` function.
 ```js
-document.addEventListener('live-navigated', () => {
+window.addEventListener('pb:navigated', () => {
     // ...
 }, { once: true })
 ```
@@ -229,19 +256,19 @@ document.addEventListener('live-navigated', () => {
 
 ## Manually visiting a new page
 
-In addition to `pb-navigate`, you can manually call the `PyBlade Live.navigate()` method to trigger a visit to a new page using JavaScript:
+In addition to `pb:navigate`, you can call `PyBlade.navigate()` to visit a new page from JavaScript:
 
 ```html
 <script>
     // ...
 
-    PyBlade Live.navigate('/new/url/')
+    PyBlade.navigate('/new/url/')
 </script>
 ```
 
 ## Using with analytics software
 
-When navigating pages using `pb-navigate` in your app, any `<script>` tags in the `<head>` only evaluate when the page is initially loaded.
+When navigating pages using `pb:navigate` in your app, any `<script>` tags in the `<head>` only evaluate when the page is initially loaded.
 
 This creates a problem for analytics software such as [Fathom Analytics](https://usefathom.com/). These tools rely on a `<script>` snippet being evaluated on every single page change, not just the first.
 
@@ -258,36 +285,36 @@ Tools like [Google Analytics](https://marketingplatform.google.com/about/analyti
 
 ## Script evaluation
 
-When navigating to a new page using `pb-navigate`, it _feels_ like the browser has changed pages; however, from the browser's perspective, you are technically still on the original page.
+When navigating to a new page using `pb:navigate`, it _feels_ like the browser has changed pages; however, from the browser's perspective, you are technically still on the original page.
 
 Because of this, styles and scripts are executed normally on the first page, but on subsequent pages, you may have to tweak the way you normally write JavaScript.
 
-Here are a few caveats and scenarios you should be aware of when using `pb-navigate`.
+Here are a few caveats and scenarios you should be aware of when using `pb:navigate`.
 
 ### Don't rely on `DOMContentLoaded`
 
 It's common practice to place JavaScript inside a `DOMContentLoaded` event listener so that the code you want to run only executes after the page has fully loaded.
 
-When using `pb-navigate`, `DOMContentLoaded` is only fired on the first page visit, not subsequent visits.
+When using `pb:navigate`, `DOMContentLoaded` is only fired on the first page visit, not subsequent visits. To run code on every page:
 
-To run code on every page visit, swap every instance of `DOMContentLoaded` with `live-navigated`:
+- write it in a `<script>` in the page itself, which is [run on every visit](#scripts-in-the-page-are-re-evaluated),
+- or, for code that belongs to a live component, write it in the component's [`@script`](/live-components/live-components#running-javascript-with-script),
+- or listen for both events:
 
 ```js
-document.addEventListener('DOMContentLoaded', () => { // [!code --]
-document.addEventListener('live-navigated', () => { // [!code ++]
+const init = () => {
     // ...
-})
+};
+
+document.addEventListener('DOMContentLoaded', init);
+window.addEventListener('pb:navigated', init);
 ```
-
-Now, any code placed inside this listener will be run on the initial page visit, and also after PyBlade Live has finished navigating to subsequent pages.
-
-Listening to this event is useful for things like initializing third-party libraries.
 
 ### Scripts in `<head>` are loaded once
 
 If two pages include the same `<script>` tag in the `<head>`, that script will only be run on the initial page visit and not on subsequent page visits.
 
-```blade
+```html
 <!-- Page one -->
 <head>
     <script src="/app.js"></script>
@@ -299,13 +326,15 @@ If two pages include the same `<script>` tag in the `<head>`, that script will o
 </head>
 ```
 
+A script loading a file is recognized by its `src`, and one written inline by its whole content. Stylesheets and `<style>` elements follow the same rule.
+
 ### New `<head>` scripts are evaluated
 
-If a subsequent page includes a new `<script>` tag in the `<head>` that was not present in the `<head>` of the initial page visit, PyBlade Live will run the new `<script>` tag.
+If a subsequent page includes a new `<script>` tag in the `<head>` that was not present in the `<head>` of the initial page visit, PyBlade Live will add it and run it. New stylesheets and `<style>` elements are added the same way.
 
 In the below example, _page two_ includes a new JavaScript library for a third-party tool. When the user navigates to _page two_, that library will be evaluated.
 
-```blade
+```html
 <!-- Page one -->
 <head>
     <script src="/app.js"></script>
@@ -318,19 +347,19 @@ In the below example, _page two_ includes a new JavaScript library for a third-p
 </head>
 ```
 
-<Callout type="info" title={"Head assets are blocking"}>
-If you are navigating to a new page that contains an asset like `<script src="...">` in the head tag. That asset will be fetched and processed before the navigation is complete and the new page is swapped in. This might be surprising behavior, but it ensures any scripts that depend on those assets will have immediate access to them.
+<Callout type="info" title={"New scripts run before the page's own"}>
+When the new page is in place, new `<head>` scripts are run before the scripts of the page itself, and a script loading a file is waited for before the next one runs. A script in the page that uses a library loaded in the new `<head>` can therefore count on it being there.
 </Callout>
 
 ### Reloading when assets change
 
 It's common practice to include a version hash in an application's main JavaScript file name. This ensures that after deploying a new version of your application, users will receive the fresh JavaScript asset, and not an old version served from the browser's cache.
 
-But, now that you are using `pb-navigate` and each page visit is no longer a fresh browser page load, your users may still be receiving stale JavaScript after deployments.
+But, now that you are using `pb:navigate` and each page visit is no longer a fresh browser page load, your users may still be receiving stale JavaScript after deployments.
 
-To prevent this, you may add `data-navigate-track` to a `<script>` tag in `<head>`:
+To prevent this, you may add `data-navigate-track` to a `<script>` or `<link>` tag in `<head>`:
 
-```blade
+```html
 <!-- Page one -->
 <head>
     <script src="/app.js?id=123" data-navigate-track></script>
@@ -342,52 +371,56 @@ To prevent this, you may add `data-navigate-track` to a `<script>` tag in `<head
 </head>
 ```
 
-When a user visits _page two_, PyBlade Live will detect a fresh JavaScript asset and trigger a full browser page reload.
+When a user visits _page two_, PyBlade Live will detect a fresh JavaScript asset and load the page from scratch, with a full browser page load.
 
 <Callout type="warn" title={"Only query string changes are tracked"}>
-PyBlade Live will only reload a page if a `[data-navigate-track]` element's query string (`?id="456"`) changes, not the URI itself (`/app.js`).
+PyBlade Live will only reload a page if a `[data-navigate-track]` element's query string (`?id=456`) changes, not the URI itself (`/app.js`).
 </Callout>
 
-### Scripts in the `<body>` are re-evaluated
+### Scripts in the page are re-evaluated
 
-Because PyBlade Live replaces the entire contents of the `<body>` on every new page, all `<script>` tags on the new page will be run:
+Because PyBlade Live replaces the part of the page marked `pb:root` on every new page (the whole `<body>` when nothing is marked), all `<script>` tags in it are run on each new page, as they would be on a page loaded from scratch:
 
-```blade
+```html
 <!-- Page one -->
-<body>
+<main pb:root>
     <script>
         console.log('Runs on page one')
     </script>
-</body>
+</main>
 
 <!-- Page two -->
-<body>
+<main pb:root>
     <script>
         console.log('Runs on page two')
     </script>
-</body>
+</main>
 ```
 
-If you have a `<script>` tag in the body that you only want to be run once, you can add the `data-navigate-once` attribute to the `<script>` tag and PyBlade Live will only run it on the initial page visit:
+If you have a `<script>` tag that you only want to be run once, you can add the `data-navigate-once` attribute to it and PyBlade Live will only run it the first time:
 
-```blade
+```html
 <script data-navigate-once>
     console.log('Runs only on page one')
 </script>
 ```
 
+`@pbscripts` is marked this way already: PyBlade Live is never started twice.
+
+Scripts outside `pb:root`, in your layout, are not replaced and are not run again.
+
+### Pushed content
+
+The content your templates [push](/live-components/live-components#pushing-to-the-layout) with `@push` is kept once per page, and that holds across navigation too. The new page's pushes are added to the stacks of the current page, wherever those stacks are in the layout, and what the current page already holds is left as it is and **not** run again. A library loaded on one page is not loaded a second time on the next, and a library first needed on the next page is loaded and run there.
+
 ## Customizing the progress bar
 
 When a page takes longer than 150ms to load, PyBlade Live will show a progress bar at the top of the page.
 
-You can customize the color of this bar or disable it all together inside PyBlade's config file (`my_project/pyblade.json`):
+You can customize the color of this bar or disable it all together inside PyBlade's config file (`pyblade.toml`):
 
-```json
-"live":{
-    "enabled": true,
-    "navigate": {
-        "show_progress_bar": true,
-        "progress_bar_color": "#2299dd",
-    }
-}
+```toml title="pyblade.toml"
+[live_components.navigate]
+show_progress_bar = true
+progress_bar_color = "#2299dd"
 ```

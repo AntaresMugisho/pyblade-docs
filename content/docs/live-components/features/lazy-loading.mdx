@@ -21,7 +21,7 @@ class Revenue(LiveComponent):
             total=Sum('amount', default=0))['total']
 
     def render(self):
-        return self.view('live.revenue')
+        return self.render_template('live.revenue')
 ```
 
 ```blade
@@ -79,7 +79,7 @@ class Revenue(LiveComponent):
         """)
 
     def render(self):
-        return self.view('live.revenue')
+        return self.render_template('live.revenue')
 ```
 
 Because the above component specifies a "placeholder" by returning inline HTML from a `placeholder()` method, the user will see an SVG loading spinner on the page until the component is fully loaded.
@@ -92,17 +92,15 @@ For more complex loaders, such as **skeletons**, you can return a template from 
 
 ```python
 def placeholder(self):
-    return self.view('live.placeholders.skeleton', context={})
+    return self.render_template('live.placeholders.skeleton', context={})
 ```
 
 
-If you want to set a default placeholder template for all your lazy-loaded components, you can do so by referencing the view in the `pyblade.json` config file:
+If you want to set a default placeholder template for all your lazy-loaded components, you can do so by referencing the view in the `pyblade.toml` config file:
 
-```json
-"live":{
-    "enabled": true,
-    "lazy_placeholder": "live.placeholders.default", // [!code highlight]
-}
+```toml title="pyblade.toml"
+[live_components]
+lazy_placeholder = "live.placeholders.default" # [!code highlight]
 ```
 
 Now, when a component is lazy-loaded and no `placeholder()` method is defined, PyBlade Live will use the configured PyBlade component (`live.placeholders.default` in this case.)
@@ -186,8 +184,8 @@ In general, you can treat `lazy` components the same as normal components, since
 For example, here's a scenario where you might pass a time interval into the `Revenue` component from a parent component:
 
 ```blade
-<input type="date" pb-model="start">
-<input type="date" pb-model="end">
+<input type="date" pb:model="start">
+<input type="date" pb:model="end">
 
 <live:revenue lazy :start="start" :end="end" />
 ```
@@ -207,10 +205,10 @@ class Revenue(LiveComponent):
         ...
 
     def placeholder(self):
-        return self.view('live.placeholders.skeleton', context={})
+        return self.render_template('live.placeholders.skeleton', context={})
 
     def render(self):
-        return self.view('live.revenue')
+        return self.render_template('live.revenue')
 ```
 
 However, unlike a normal component load, a `lazy` component has to serialize or "dehydrate" any passed-in properties and temporarily store them on the client-side until the component is fully loaded.

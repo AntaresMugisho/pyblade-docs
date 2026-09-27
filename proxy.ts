@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
-import { docsContentRoute, docsRoute } from '@/lib/shared';
+import { docsContentRoute } from '@/lib/shared';
 
-const { rewrite: rewriteDocs } = rewritePath(
-  `${docsRoute}{/*path}`,
-  `${docsContentRoute}{/*path}/content.md`,
-);
-const { rewrite: rewriteSuffix } = rewritePath(
-  `${docsRoute}{/*path}.md`,
-  `${docsContentRoute}{/*path}/content.md`,
-);
+// The docs are served from the site root, so these patterns match every path.
+const { rewrite: rewriteDocs } = rewritePath('/{*path}', `${docsContentRoute}{/*path}/content.md`);
+const { rewrite: rewriteSuffix } = rewritePath('/{*path}.md', `${docsContentRoute}{/*path}/content.md`);
+
+// Routes that live next to the docs and must never be rewritten to markdown.
+const RESERVED = ['/api', '/og', '/llms', '/_next'];
 
 export default function proxy(request: NextRequest) {
-  const result = rewriteSuffix(request.nextUrl.pathname);
+  const { pathname } = request.nextUrl;
+  if (RESERVED.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(`${prefix}.`))) {
+    return NextResponse.next();
+  }
+
+  const result = rewriteSuffix(pathname);
   if (result) {
     return NextResponse.rewrite(new URL(result, request.nextUrl));
   }
 
   if (isMarkdownPreferred(request)) {
-    const result = rewriteDocs(request.nextUrl.pathname);
+    const result = rewriteDocs(pathname);
 
     if (result) {
       return NextResponse.rewrite(new URL(result, request.nextUrl));

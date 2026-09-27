@@ -1287,40 +1287,73 @@ When working with Django, if you’d like to retrieve a namespaced URL, specify 
 This will follow the normal namespaced URL resolution strategy, including using any hints provided by the context as to the current application. 
 
 
-### Checking the active URL with `@urlis` 
+### Marking the current page with `@active`
 
-The `@urlis` directive checks whether the current URL matches a given named route and returns `True` if it does, or `False` otherwise. This can be particularly useful for defining active states in navigation menus or conditionally rendering elements based on the active page.  
-
-To use `@urlis`, pass the name of the route as the first argument.  
+`@active` renders its content while the reader is on the page it names, and is closed with `@endactive`. It is what a navigation menu needs to mark where the reader is.
 
 ```html
-@if (@urlis('home'))
-    <span>You are on the homepage!</span>
-@endif
-```
-The abve code is equivalent to :
-
-```html
-@if (request.resolver_match.url_name == 'home')
-    <!-- Display content for the home page -->
-@endif
+@active ('dashboard')
+    <span>You are on the dashboard.</span>
+@endactive
 ```
 
-If the current URL matches the `home` route, the message will be displayed. Otherwise, it will not render anything.  
-
-
-A common use case is applying an `active` class to navigation links. You can achieve this by adding a second string parameter to the `@urlis` directive. When a second parameter is passed, the provided value is returned instead of `True` if the current page matches the given route name, otherwise, nothing is returned instead of `False`.
+The most common use is applying a class to the element wrapping a link. Because `@active` renders whatever is inside it, that class goes in the block:
 
 ```html
-<li class="@urlis('dashboard', 'active')">
+<li class="@active('dashboard')active@endactive">
     <a href="@url('dashboard')">Dashboard</a>
 </li>
-<li class="@urlis('profile', 'active')">
+<li class="@active('profile')active@endactive">
     <a href="@url('profile')">Profile</a>
 </li>
 ```
 
-If the current page is dashboard, `@urlis('dashboard', 'active')` returns "active", making the `<li>` element have the class `active`. Else, nothing is returned, meaning no additional class is applied.
+If the reader is on the dashboard, the first `<li>` is rendered with `class="active"` and the second with an empty class.
+
+#### Naming the page
+
+What you pass names the page in one of two ways. A plain name is the name of the route, as Django resolved it; anything starting with `/` is matched against the path instead. Either form accepts `*`, standing for anything.
+
+| What you write | What it matches |
+| -------------- | --------------- |
+| `'dashboard'` | The route named `dashboard`. |
+| `'blog:index'` | The `index` route of the `blog` namespace. |
+| `'index'` | The same route, named without its namespace. |
+| `'blog:*'` | Every route in the `blog` namespace. |
+| `'/posts/'` | That exact path, and no other. |
+| `'/posts/*'` | `/posts/`, `/posts/3`, `/posts/3/edit`, and anything else beneath it. |
+
+The last one is what the parent of a menu needs, so that it stays marked while the reader is on any page below it:
+
+```html
+@active ('/posts/*')
+    <span>Somewhere in the posts.</span>
+@endactive
+```
+
+You can name several pages at once, and the block is rendered if the reader is on any of them:
+
+```html
+@active ('posts', '/archive/*')
+    <span>Somewhere in the writing.</span>
+@endactive
+```
+
+#### Showing something else instead
+
+Like `@if`, `@active` takes an `@else` for when the reader is somewhere else:
+
+```html
+@active ('dashboard')
+    <span>You are here.</span>
+@else
+    <a href="@url('dashboard')">Go to the dashboard</a>
+@endactive
+```
+
+<Callout type="info" title={"Inside a persisted element, use pb:current"}>
+`@active` is resolved when the server renders the page. An element kept across page loads with `@persist` is not re-rendered, so a link inside one should use the [`pb:current`](/live-components/features/navigation#highlighting-active-links) directive instead, which the browser applies after each navigation.
+</Callout>
 
 ### The `@querystring` directive 
 

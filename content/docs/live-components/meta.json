@@ -9,7 +9,6 @@
         "events",
         "forms",
         "features",
-        "live-directives",
-        "security"
+        "live-directives"
     ]
 }
