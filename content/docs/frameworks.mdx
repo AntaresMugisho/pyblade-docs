@@ -31,7 +31,7 @@ Django renders templates through *backends*. Add PyBlade's, and put it **before*
 ```python title="settings.py"
 TEMPLATES = [
     {
-        "BACKEND": "pyblade.backends.django.PyBladeEngine",
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -44,8 +44,9 @@ TEMPLATES = [
         },
     },
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "BACKEND": "pyblade.django.PyBladeEngine",
+        "NAME": "pyblade",
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -59,7 +60,7 @@ TEMPLATES = [
 ]
 ```
 
-Keeping Django's backend as the second entry means the Django admin, and any third-party app that ships Django templates, keep working. Django asks each backend in turn until one has the template.
+Keeping Django's backend as the first entry means the Django admin, and any third-party app that ships Django templates, keep working. Django asks each backend in turn until one has the template.
 
 What this gives you:
 
@@ -112,7 +113,7 @@ PyBlade doesn't ask you for extra settings, but it does use some Django ones:
 | Setting | Used for |
 |---|---|
 | `SECRET_KEY` | Signing the state of live components. See [Security](/security) |
-| `DEBUG` | Showing PyBlade's error page, with the template's source, instead of a generic error |
+| `DEBUG` | Showing PyBlade's error page, control `@debug` behavior.|
 | `STATIC_URL`, `MEDIA_URL` | The `@static`, `@get_static_prefix` and `@get_media_prefix` directives |
 | `LANGUAGES`, the active language | `@trans`, `@blocktrans` and language lists |
 | `MIDDLEWARE` | `CsrfViewMiddleware` protects your forms and the live endpoints |
