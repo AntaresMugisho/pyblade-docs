@@ -1,0 +1,69 @@
+---
+title: "Overview"
+description: "The pyblade Command Line Interface: start projects, run the development server, generate files and manage translations."
+---
+
+PyBlade comes with a command line tool, `pyblade`, that starts projects, runs your development server and generates the files you would otherwise write by hand: templates, components, live components and your own commands.
+
+The CLI is installed with PyBlade itself, there is nothing more to install:
+
+
+<Tabs groupId="package-manager" items={['pip', 'poetry', 'uv']}>
+  <Tab>
+  ```bash
+  pip install pyblade
+  ```
+  </Tab>
+
+  <Tab>
+  ```bash
+  poetry add pyblade
+  ```
+  </Tab>
+
+  <Tab>
+  ```bash
+  uv add pyblade
+  ```
+  </Tab>
+</Tabs>
+
+
+## Checking the version
+
+```bash
+pyblade -v
+```
+
+## Updating PyBlade
+
+```bash
+pyblade upgrade
+```
+
+`pyblade upgrade` upgrades PyBlade with the package manager your project uses (`uv`, `poetry`, `pipenv` or `pip`), the one it finds from your lock file or from the active virtual environment. It tells you whether a newer version was installed.
+
+## Getting help
+
+Run `pyblade` alone to list every command with a short description. 
+
+```bash
+pyblade
+```
+
+Add `--help` to any command to see its arguments and options:
+
+```bash
+pyblade make:live --help
+```
+
+## Where commands run
+
+Most commands look for your project's [`pyblade.toml`](/configuration) starting from the current directory and going up, so they work from any folder of your project. Two things are read from it that matter to the commands:
+
+- [`[paths]`](/configuration#paths) says where templates, components and your own commands live.
+- [`[stack]`](/configuration#stack) says which framework and package managers the project uses.
+
+<Callout type="info" title="Commands of your framework">
+In a Django project, `pyblade` also lists Django's own management commands (`migrate`, `test`, `createsuperuser`...) and runs them for you, so you can use one tool for everything. These are Django's commands, not PyBlade's, and are documented in [Django's documentation](https://docs.djangoproject.com/en/stable/ref/django-admin/). This section only documents the commands PyBlade provides.
+</Callout>
