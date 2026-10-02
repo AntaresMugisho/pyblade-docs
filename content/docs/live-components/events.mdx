@@ -223,7 +223,8 @@ Pass any parameters as an object, the second argument of `$emit()`:
 Those parameters reach both PyBlade Live classes and JavaScript listeners. Here's the `refresh_posts` parameter received by a PyBlade Live class:
 
 ```python
-from pyblade.live import LiveComponent, on
+from pyblade import LiveComponent
+from pyblade.decorators import on
 
 
 class PostList(LiveComponent):

@@ -62,7 +62,7 @@ PyBlade Live allows you to pass parameters from your PyBlade template to the act
 For example, let's imagine you have a `TodoList` component that allows users to delete a task. You can pass the task's ID as a parameter to the `delete()` action in your PyBlade Live component. Then, the action can fetch the relevant task and delete it from the database:
 
 ```python
-rom pyblade import LiveComponent
+from pyblade import LiveComponent
 from app.models import Task
 
 class TodoList(LiveComponent):
@@ -116,10 +116,12 @@ But, sometimes there might be an action in your component with no side effects t
 Let's say you want to track when a user clicks on a button, but this interaction doesn’t change any visible part of the UI.
 
 ```python
-from pyblade.live import Component
+from pyblade import LiveComponent
+from pyblade.decorators import renderless
+
 from app.models import ActivityLog
 
-class ActivityTracker(Component):
+class ActivityTracker(LiveComponent):
     user_id = None
 
     def mount(self, user_id):
@@ -132,7 +134,7 @@ class ActivityTracker(Component):
 ```
 
 ```html
-<button wire:click="track_click" class="btn">
+<button pb:click="track_click" class="btn">
     Click Me
 </button>
 ```

@@ -1,5 +1,5 @@
 ---
-title: "PyBlade Live directives"
+title: "HTML directives"
 ---
 
 ## pb:click
@@ -764,9 +764,10 @@ For security renforcement, you may use the `@confirm` decorator inside your PyBl
 Imagine you have a `PostDelete` component where a user can delete a blog post. To prevent accidental or malicious deletions, you can enforce a confirmation step using the `@confirm` decorator.
 
 ```python
-from pyblade import Component, confirm
+from pyblade import LiveComponent,
+from pyblade.decorators import confirm
 
-class PostDelete(Component):
+class PostDelete(LiveComponent):
     post_id = None
 
     def mount(self, post_id):
@@ -776,7 +777,6 @@ class PostDelete(Component):
     def delete(self):
         post = Post.objects.get(self.post_id)
         post.delete()
-        self.notify("The post has been deleted.")
 ```
 
 ```html

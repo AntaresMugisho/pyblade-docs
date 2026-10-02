@@ -14,7 +14,7 @@ from django.conf import settings
 from pyblade.live import Component, FileUploader
 from .forms import ImageUploadForm
 
-class UploadPhoto(Component, FileUploader):
+class UploadPhoto(LiveComponent, FileUploader):
 
     photo = None,
 
@@ -70,7 +70,7 @@ For example, below is a component with an array property named `photos`. By addi
 ```python
 from pyblade.live import Component, FileUploader
 
-class UploadPhotos(Component, FileUploader):
+class UploadPhotos(LiveComponent, FileUploader):
 
     photos = []
 
@@ -110,7 +110,7 @@ Let's explore an example of a file upload with an image preview:
 ```python
 from pyblade.live import Component, FileUploader
 
-class UploadPhotos(Component, FileUploader):
+class UploadPhotos(LiveComponent, FileUploader):
 
     @validators('image|max:1024')
     def photo(self): pass

@@ -128,7 +128,7 @@ To demonstrate the problem more clearly, consider the following `ClientList` com
 from pyblade.live import Component, Paginator
 form app.models import Client
 
-class ClientList(Component, Paginator):
+class ClientList(LiveComponent, Paginator):
 
    def render(self):
         return self.render_template('client-list', {
@@ -148,7 +148,7 @@ Suppose the page also contains a `InvoiceList` component that also uses paginati
 from pyblade.live import Component, Paginator
 from app.models import invoices
 
-class InvoiceList(Component, Paginator):
+class InvoiceList(LiveComponent, Paginator):
 
    def render(self):
         return self.render_template('invoice-list', {
@@ -174,7 +174,7 @@ The following component demonstrates using this method to reset the page after t
 from pyblade.live import Component, Paginator
 from app.models import Post
 
-class SearchPosts(Component, Paginator):
+class SearchPosts(LiveComponent, Paginator):
     query: str = ''
 
     def search(self):
@@ -229,7 +229,7 @@ PyBlade Live allows you to execute code before and after a page is updated by de
 from pyblade.live import Component, Paginator
 from app.models import Post
 
-class PostList(Component, Paginator):
+class PostList(LiveComponent, Paginator):
 
     def updating_page(self, page):
         """Runs before the page is updated for this component..."""

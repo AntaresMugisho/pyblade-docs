@@ -24,14 +24,12 @@ Here's an example of how to use the `mount()` method to initialize `name` and `e
 
 ```python
 from pyblade import LiveComponent
-from pyblade.live import auth
 
 class UpdateProfile(LiveComponent):
 
     def mount(self):
-        user = auth()
-        self.name = user.name
-        self.email = user.email
+        self.name = "John Doe"
+        self.email = "john.doe@example.com"
 ```
 
 The `mount()` method can also receive parameters when the component is initialized:

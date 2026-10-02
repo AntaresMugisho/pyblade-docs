@@ -195,7 +195,8 @@ To check what properties hold, declare the rules as Django form fields and valid
 
 ```python
 from django import forms
-from pyblade.live import LiveComponent, validate
+from pyblade import LiveComponent
+from pyblade.decorators import validate
 
 
 class EditPost(LiveComponent):
@@ -275,7 +276,7 @@ A file can only be sent for a property the component declares with a file field 
 
 ```python
 from django import forms
-from pyblade.live import LiveComponent
+from pyblade import LiveComponent
 from pyblade.live.uploads import MaxFileSize
 
 
