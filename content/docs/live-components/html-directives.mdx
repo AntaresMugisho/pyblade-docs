@@ -1162,7 +1162,7 @@ class PostCreate(LiveComponent):
 
 ```html
 <div>
-    <button pb:click="py.show_modal = True">New Post</button>
+    <button pb:click="show_modal = True">New Post</button>
 
     <div pb:show="show_modal"> <!-- [!code highlight] -->
         <form pb:submit="save">
@@ -1182,7 +1182,7 @@ You can combine `pb:show`  transitions to create smooth show/hide animations. Si
 
 ```html
 <div>
-    <button pb-on:click="py.show_modal = True">New Post</button>
+    <button pb:click="show_modal = True">New Post</button>
 
     <div pb:show="show_modal" pb:transition.duration.500ms>
         <form pb:submit="save">
@@ -1280,7 +1280,6 @@ class ChatBot(LiveComponent):
     def submit_prompt(self):
         self.question = self.prompt
         self.prompt = ""
-        self.js("py.ask()")
 
     def ask(self):
         response = openai.ChatCompletion.create(
@@ -1385,12 +1384,7 @@ class PostDetail(LiveComponent):
 
 ```html
 <div>
-    <button b:click="py.likes++" pb:click="like">❤️ Like</button>
 
     Likes: <span pb:text="likes"></span>
 </div>
 ```
-
-When the button is clicked, `py.likes++` immediately updates the displayed count through `pb:text`, while `pb:click="like"` persists the change to the database in the background.
-
-This pattern makes `pb:text` perfect for building optimistic UIs in PyBlade Live.
