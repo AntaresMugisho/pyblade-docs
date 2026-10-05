@@ -7,7 +7,7 @@ const { rewrite: rewriteDocs } = rewritePath('/{*path}', `${docsContentRoute}{/*
 const { rewrite: rewriteSuffix } = rewritePath('/{*path}.md', `${docsContentRoute}{/*path}/content.md`);
 
 // Routes that live next to the docs and must never be rewritten to markdown.
-const RESERVED = ['/api', '/og', '/llms', '/_next'];
+const RESERVED = ['/api', '/og', '/llms', '/_next', 'sitemap', 'robots'];
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
