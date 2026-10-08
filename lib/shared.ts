@@ -5,6 +5,6 @@ export const docsContentRoute = '/llms.mdx/docs';
 
 export const gitConfig = {
   user: 'AntaresMugisho',
-  repo: 'PyBladeDocs',
+  repo: 'pyblade-docs',
   branch: 'main',
 };

@@ -1,5 +1,6 @@
 {
   "title": "PyBlade CLI",
+  "description": "Manage your development workflow with PyBlade CLI",
   "pages": [
     "index",
     "commands",

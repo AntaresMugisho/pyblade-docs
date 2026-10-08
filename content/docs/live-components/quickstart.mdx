@@ -100,7 +100,7 @@ If PyBlade detects multiple root elements, it will raise an exception. PyBlade a
 
 Before rendering a Live Component, your project needs a small amount of framework-specific configuration.
 
-<Tabs groupId='framework' items={["django", "flask"]}> 
+<Tabs groupId='framework' items={["Django"]}> 
     <Tab>
     If you're using Django, there are two things you need to configure.
 
@@ -128,12 +128,6 @@ Before rendering a Live Component, your project needs a small amount of framewor
     ```
 
     That's all. Your Django project is now ready to use Live Components.
-
-    </Tab>
-
-    <Tab>
-
-    Coming soon.
 
     </Tab>
 </Tabs>
@@ -189,23 +183,17 @@ Now we need a view that renders our `index.html` template.
 
 Open your `views.py` file and add:
 
-<Tabs groupId='framework' items={["django", "flask"]}> <Tab>
+<Tabs groupId='framework' items={["Django", "Flask"]}> 
+    <Tab>
+        ```python title="views.py"
+        from django.shortcuts import render
 
-```python title="views.py"
-from django.shortcuts import render
 
+        def index(request):
+            return render(request, "index")
+        ```
+    </Tab>
 
-def index(request):
-    return render(request, "index")
-```
-
-</Tab>
-
-<Tab>
-
-Coming soon
-
-</Tab>
 </Tabs>
 
 The `index()` view simply renders the PyBlade template we created above.
@@ -216,32 +204,23 @@ Finally, we need to make the page accessible through a URL.
 
 Open your Django application's `urls.py` file and add:
 
-<Tabs groupId='framework' items={["django", "flask"]}> <Tab>
+<Tabs groupId='framework' items={["Django"]}> 
+    <Tab>
+        ```python title="urls.py"
+        from django.urls import path
 
-```python title="urls.py"
-from django.urls import path
-
-from .views import index
+        from .views import index
 
 
-urlpatterns = [
-    path("homepage/", index),
-]
-```
-
-</Tab>
-
-<Tab>
-
-Coming soon
-
-</Tab>
+        urlpatterns = [
+            path("homepage/", index),
+        ]
+        ```
+    </Tab>
 </Tabs>
 
 <Callout type="warn">
-
-Make sure that `views.py` and `urls.py` are located in the appropriate Django application directory so that the import shown above works correctly.
-
+    Make sure that `views.py` and `urls.py` are located in the appropriate Django application directory so that the import shown above works correctly.
 </Callout>
 
 Now everything is connected.
