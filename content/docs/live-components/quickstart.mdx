@@ -151,7 +151,7 @@ templates/index.html
 
 Open the file and add:
 
-```html title="templates/index.html"
+```html title="templates/index.html" lineNumbers
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,11 +161,9 @@ Open the file and add:
 </head>
 
 <body>
-
     <pb-counter /> <!-- [!code highlight] -->
 
     @pbscripts <!-- [!code highlight] -->
-
 </body>
 
 </html>
@@ -183,7 +181,7 @@ Now we need a view that renders our `index.html` template.
 
 Open your `views.py` file and add:
 
-<Tabs groupId='framework' items={["Django", "Flask"]}> 
+<Tabs groupId='framework' items={["Django"]}> 
     <Tab>
         ```python title="views.py"
         from django.shortcuts import render

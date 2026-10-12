@@ -23,8 +23,8 @@ In simple terms:
 
 A Live Component consists of two parts:
 
-* A **Python class** that inherits from `LiveComponent` and contains the component's logic.
-* A **PyBlade template** that defines what the component looks like.
+- A **Python class** that inherits from `pyblade.LiveComponent` and contains the component's logic.
+- A **PyBlade template** that defines what the component looks like.
 
 PyBlade CLI provides a command to generate both files for you:
 
@@ -56,6 +56,7 @@ The Python file contains the Live Component class:
 
 ```python title="components/todo_list/todo_list.py"
 from pyblade import LiveComponent
+
 
 class TodoList(LiveComponent):
 
@@ -106,8 +107,6 @@ You do not need to include the folder name when rendering the component.
 
 This organization is intentionally abstract. PyBlade uses the folder to keep the component's files together, while the component itself is identified by its name.
 
-### Flat components
-
 If you prefer not to create a separate folder for every Live Component, you can use the `--flat` option:
 
 ```bash
@@ -123,7 +122,12 @@ components
 └── ...
 ```
 
-You can also configure this behavior in your `pyblade.toml` file, so you don't have to specify `--flat` every time.
+You can also configure this behavior in your [`pyblade.toml`](/configuration#live_components) file, so you don't have to specify `--flat` every time.
+```toml
+[live_component]
+flat = True
+```
+
 
 This is simply an organizational choice. It does not change how you render the component.
 
@@ -137,6 +141,7 @@ For example:
 
 ```python title="components/todo_list/todo_list.py"
 from pyblade import LiveComponent
+
 
 class TodoList(LiveComponent):
 
@@ -162,8 +167,9 @@ If your component follows PyBlade's conventional naming structure, you can omit 
 
 PyBlade Live will automatically use the template associated with the component:
 
-```python title="components/todo_list/todo_list.py"
+```python title="components/todo_list/todo_list.py" lineNumbers
 from pyblade import LiveComponent
+
 
 class TodoList(LiveComponent):
     ...
@@ -182,17 +188,17 @@ PyBlade automatically knows that `todo_list.html` belongs to the `TodoList` comp
 
 If you use a different template name or location, you can customize the template resolution. For a fixed template, override the `template_name` property with the template path:
 
-```python
+```python lineNumbers=4
 class TodoList(LiveComponent):
-    template_name = "path.to.template"
+    template_name = "path.to.template" # [!code highlight]
 ```
 
 For more advanced or dynamic template resolution, you can instead override the `get_template_name()` method.
 
-```python
+```python lineNumbers=4
 class TodoList(LiveComponent):
 
-    def get_template_name(self):
+    def get_template_name(self): # [!code highlight]
         return "path.to.template"
 ```
 
@@ -214,16 +220,7 @@ You can also use the `@component` directive:
 ```html
 @component("todo-list")
 ```
-
 Both forms refer to the same component.
-
-The tag syntax is generally easier to read when your component is part of the HTML structure, while the `@component` directive can be useful when you need to render a component dynamically or use it in a template expression.
-
-<Callout type="info" title={"The same syntax is used for regular and Live Components"}>
-
-You don't need a special syntax to tell PyBlade that a component is live.
-PyBlade determines which type of component to render when it searches for the component.
-</Callout>
 
 ### How PyBlade finds a component
 
@@ -263,7 +260,7 @@ Look for a Live Component
              └── Not found ──► Raise an exception
 ```
 
-This behavior allows you to use the same component syntax throughout your templates without having to remember whether a component is regular or live.
+With this, you don't have to remember whether a component is regular or live. You just call it.
 
 
 <Callout type="info" title="Component names must be unique within a component directory.">
@@ -272,7 +269,7 @@ You cannot have two regular components with the same name, two Live Components w
 
 PyBlade also enforces this rule when generating components. If the generated file names would conflict with an existing component, the command returns an error instead of overwriting the existing files.
 
-Components with the same name can only coexist when they are placed in separate component directories.
+Components with the same name can only coexist when they are placed in separate directories.
 
 </Callout>
 
@@ -303,7 +300,7 @@ You can also use the `@component` directive with the same name:
 Do not use the Python class name directly in the component tag:
 
 ```html
-<pb-TodoList />
+<pb-TodoList /> <!-- [!code --] -->
 ```
 
 Component names should use **kebab-case** or the supported **snake_case** form.
@@ -312,7 +309,7 @@ Component names should use **kebab-case** or the supported **snake_case** form.
 
 Live Components can receive initial data from the template when they are rendered.
 
-You can pass a value using a regular attribute:
+You can pass a value using a regular HTML attribute:
 
 ```html
 <pb-todo-list title="My Tasks" />
@@ -343,9 +340,7 @@ The difference is what the Live Component does with the received data.
 
 ### Receiving data in the component
 
-Data passed to a Live Component is received through its `mount()` method.
-
-The `mount()` method is the Live Component equivalent of Python's `__init__()` method. It is used to receive and/or initialize the data passed to the component when it is created.
+Data passed to a Live Component is received through its `mount()` method. This method is used to receive and/or initialize the data passed to the component when it is created.
 
 For example:
 
@@ -369,7 +364,7 @@ When the component is rendered as:
 <pb-todo-list title="My Tasks" />
 ```
 
-PyBlade calls `mount()` during the component's initial creation and passes `"My Tasks"` as the `title` argument.
+PyBlade only calls `mount()` during the component's initial creation and passes `"My Tasks"` as the `title` argument.
 
 You can think of `mount()` as the place where you prepare a Live Component when it is first created. It is similar in purpose to a Python class constructor, although it follows the Live Component lifecycle rather than replacing `__init__()`.
 
@@ -522,11 +517,7 @@ templates/
     └── app.html
 ```
 
-If this file does not exist, you can generate it with:
-
-```bash
-pyblade make:layout app
-```
+If this file does not exist, you can manually create it.
 
 Your application layout should contain a `{{ slot }}` placeholder where the full-page component's content will be rendered:
 
@@ -554,11 +545,11 @@ Your application layout should contain a `{{ slot }}` placeholder where the full
 
 The layout is responsible for the common structure of your application, while the full-page component provides the content for the current page. The two `@stack` directives are where components send the stylesheets and scripts they need: see [Scripts and styles](#scripts-and-styles).
 
-You can customize the default application layout in your `pyblade.toml` file. This is useful when your application has a different layout structure, for example:
+You can customize the default application layout in your [`pyblade.toml`](/configuration#live_components) file. This is useful when your application has a different layout structure, for example:
 
 ```toml
 [live_component]
-layout = "layouts.page"
+default_layout = "layouts.page"
 ```
 
 With this configuration, full-page components will use `templates/layouts/page.html` instead of `templates/layouts/app.html`.
@@ -583,7 +574,7 @@ You can also use the `@layout` decorator:
 
 ```python
 from pyblade import LiveComponent
-from pyblade.decorators import layout
+from pyblade.live.decorators import layout
 
 
 @layout("layouts.dashboard")
