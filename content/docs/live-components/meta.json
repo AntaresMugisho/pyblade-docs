@@ -1,8 +1,8 @@
 {
-    "pages": [
+    "pages" : [
         "introduction",
         "quickstart",
-        "live-components",
+        "overview",
         "properties",
         "actions",
         "lifecycle-hooks",
