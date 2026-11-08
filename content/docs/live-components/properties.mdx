@@ -25,7 +25,7 @@ In this example, when the component renders for the first time, all the existing
 
 Alternatively, you may declare properties in your component class, making them what are known as "class attributes". For example, let's create a `title` property in the `TodoList` component:
 
-```python
+```python title="components/todo-list.py"
 from pyblade import LiveComponent
 
 class TodoList(LiveComponent):
@@ -40,7 +40,7 @@ class TodoList(LiveComponent):
 
 Component properties are automatically made available to the component's context. You can reference them using standard PyBlade syntax. Here we'll display the value of the `title` property:
 
-```html
+```html title="components/todo-list.html"
 <div>
     <h1>Title: {{ title }}</h1>
 </div>
@@ -56,11 +56,11 @@ The rendered output of this component would be:
 
 ## Sharing additional data with the template
 
-In addition to accessing class properties from the template, you can explicitly pass data to the template from the `render()` method, like you might typically do from a view in Django. This can be useful when you want to pass additional data without first storing it as a property — because properties have [specific security implications](#).
+In addition to accessing class properties from the template, you can explicitly pass data to the template from the `render()` method, like you might typically do from a view in Django. This can be useful when you want to pass additional data without first storing it as a property — because properties have [specific security implications](#security-concerns).
 
-To pass data to the view in the `render()` method, you can pass a dictionary as the `context` of the returned `render_template()` call. For example, let's say you want to pass the task status to the template.
+To pass additional data to the component's template in the `render()` method, you can pass a dictionary as the `context` of the returned `render_template()` call. For example, let's say you want to pass the task status to the template.
 
-```python
+```python title="components/todo-list.py"
 from pyblade import LiveComponent
 
 class TodoList(LiveComponent):
@@ -68,10 +68,9 @@ class TodoList(LiveComponent):
     title = "Learn PyBlade"
 
     def render(self):
-        return self.render_template("live.todo-list", context={"status": "In progress"}) # [!code highlight]
+        return self.render_template(context={"status": "In progress"}) # [!code highlight]
 
 ```
-
 
 Now you may access the `status` property from the component's template like this:
 
@@ -83,12 +82,11 @@ Now you may access the `status` property from the component's template like this
 </div>
 ```
 
-
 ## Data binding
 
-One of PyBlade Live's most powerful features is "data binding": the ability to automatically keep properties in-sync with form inputs on the page.
+One of PyBlade Live Component's most powerful features is **"data binding"**: the ability to automatically keep properties in-sync with form inputs on the page.
 
-PyBlade Live supports two-way data binding through the `pb:model` HTML attribute. This allows you to easily synchronize data between component properties and HTML inputs, keeping your user interface and component state in sync.
+Live components supports two-way data binding through the `pb:model` HTML attribute. This allows you to easily synchronize data between component properties and HTML inputs, keeping your user interface and component state in sync.
 
 Let's use the `pb:model` directive to bind the `title` property in our `TodoList` component to a basic input element:
 
@@ -100,40 +98,43 @@ class TodoList(LiveComponent):
     title: str = ""
 
     def render(self):
-        return self.render_template("live.todo-list")
+        return self.render_template()
 ```
 
 ```html
 <div>
     <h1>Title : {{ title }}</h1>
-    <input type="text" pb:model="title" />    <!-- [!code highlight] --> 
+    <form action="">
+    <input type="text" pb:model="title" />  <!-- [!code highlight] --> 
 </div>
 ```
 
 Any changes made to the text input will be automatically synchronized with the `title` property in your PyBlade Live component.
 
-<Callout type="warn" title={"\"Why isn't my component live updating as I type?\""}>
+<Callout type="warn" title="Why isn't my component live updating as I type?">
 If you tried this in your browser and are confused why the title isn't automatically updating, it's because PyBlade Live only updates a component when an "action" is submitted — like pressing a submit button — not when a user types into a field. This cuts down on network requests and improves performance.
 </Callout>
 
-<Callout type="info" title={"Pro tip"}>
+<Callout type="info" title="Pro tip">
 To enable "live" updating as a user types, you can use `pb:model.live` instead.
 </Callout>
 
 Let's add a method in our component's class so that we can trigger an "action" from the browser to test it out. 
 
-```python {7-8}
+```python {8}
 from pyblade import LiveComponent
+from .models import Task
 
 class TodoList(LiveComponent):
 
     title: str = ""
 
-    def add(self):
-        pass
+    def add_task(self): # [!code highlight:3]
+        if title:
+            Task.objects.create(title)
 
     def render(self):
-        return self.render_template("live.todo-list")
+        return self.render_template()
 ```
 
 And now we will introduce `pb:click` which allows you to call and execute a method defined in a PyBlade Live component's class right from the browser.
@@ -142,28 +143,29 @@ And now we will introduce `pb:click` which allows you to call and execute a meth
 <div>
     <h1>Title : {{ title }}</h1>
     <input type="text" pb:model="title" /> 
-    <button pb:click="add">Add Task</button> // [!code highlight] 
+    <button pb:click="add_task">Add Task</button> <!-- [!code highlight] --> 
 </div>
 ```
 
 This time, in the above example, the text input's value will synchronize with the `title` property on the server when the **"Add Task"** button is clicked.
 
 
-This is just scratching the surface of `pb:model`. We will go deeper when we'll talk about [Forms](/live-components/forms) in PyBlade Live.
+This is just scratching the surface of `pb:model`. We will go deeper when we'll talk about [Forms](/live-components/forms) in Live Components.
 
 
-## Resetting properties
+<!-- ## Resetting properties
 
-Sometimes, you may need to reset your properties back to their initial state after an action is performed by the user. In these cases, PyBlade Live provides a `reset()` method that accepts one or more property names and resets their values to their initial state.
+Sometimes, you may need to reset your properties back to their initial state after an action is performed by the user. In these cases, PyBlade's `LiveComponent` provides a `reset()` method that accepts one or more property names and resets their values to their initial state.
 
 In the example below, we can avoid code duplication by using `self.reset()` to reset the `title` field after the "Add Todo" button is clicked:
 
 ```python
 from pyblade import LiveComponent
+from .models import Task
 
 class TodoComponent(LiveComponent):
 
-    title = ""
+    title: str = ""
 
     def add(self):
         if self.title:
@@ -173,12 +175,12 @@ class TodoComponent(LiveComponent):
 
 In the above example, after a user clicks "Add Task", the input field holding the title that has just been added will clear, allowing the user to write a new title.
 
-<Callout type="warn" title={"Warning"}>
+<Callout type="warn" title="Warning">
 `reset()` won't work on values set in `mount()`.
 `reset()` will reset a property to its state before the `mount()` method was called. If you initialized the property in `mount()` to a different value, you will need to reset the property manually.
-</Callout>
+</Callout> -->
 
-## Pulling properties
+<!-- ## Pulling properties
 
 Alternatively, you can use the `pull()` method to both reset and retrieve the value in one operation.
 
@@ -195,7 +197,7 @@ class TodoComponent(LiveComponent):
     def add(self):
         if self.title:
             Task.objects.create(title=self.pull("title")) # [!code highlight]
-```
+``` -->
 
 ## Accessing properties from JavaScript
 

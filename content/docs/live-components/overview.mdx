@@ -860,12 +860,14 @@ console.log($pb.count);
 
 $pb.count = 5;          // Send with the next request.
 $pb.$set('count', 5);   // Send immediately.
-
-await $pb.increment();
-console.log('The server has responded');
 ```
 
 Component scripts run inside an asynchronous function, so you can use `await` directly when subsequent code needs to wait for a server response.
+
+```js
+await $pb.increment();
+console.log('The server has responded');
+```
 
 You can also access the component’s root element through `$pb.$el`. This keeps DOM queries within the current component:
 
