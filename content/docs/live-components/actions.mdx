@@ -9,7 +9,7 @@ They provide the developer experience of being able to call a Python method dire
 Let's explore a basic example of calling a `save` action on a `CreatePost` component:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from app.models import Post
 
 class CreatePost(LiveComponent):
@@ -62,7 +62,7 @@ PyBlade Live allows you to pass parameters from your PyBlade template to the act
 For example, let's imagine you have a `TodoList` component that allows users to delete a task. You can pass the task's ID as a parameter to the `delete()` action in your PyBlade Live component. Then, the action can fetch the relevant task and delete it from the database:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from app.models import Task
 
 class TodoList(LiveComponent):
@@ -116,7 +116,7 @@ But, sometimes there might be an action in your component with no side effects t
 Let's say you want to track when a user clicks on a button, but this interaction doesn’t change any visible part of the UI.
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from pyblade.live.decorators import renderless
 
 from app.models import ActivityLog
@@ -185,7 +185,7 @@ $pb.$el.classList.add('saved');
 Calling an action from JavaScript lets you show its result right away, and let the server catch up. Here, the bookmark icon is filled as soon as the button is clicked, while the bookmark is saved in the background:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 class PostDetail(LiveComponent):
     bookmarked: bool = False

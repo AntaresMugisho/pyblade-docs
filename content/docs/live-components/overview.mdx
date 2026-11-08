@@ -55,7 +55,7 @@ components
 The Python file contains the Live Component class:
 
 ```python title="components/todo_list/todo_list.py"
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class TodoList(LiveComponent):
@@ -140,7 +140,7 @@ These are called **inline components**.
 For example:
 
 ```python title="components/todo_list/todo_list.py"
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class TodoList(LiveComponent):
@@ -168,7 +168,7 @@ If your component follows PyBlade's conventional naming structure, you can omit 
 PyBlade Live will automatically use the template associated with the component:
 
 ```python title="components/todo_list/todo_list.py" lineNumbers
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class TodoList(LiveComponent):
@@ -346,7 +346,7 @@ For example:
 
 
 ```python title="components/todo_list/todo_list.py"
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class TodoList(LiveComponent):
@@ -377,7 +377,7 @@ For simple cases, you can omit `mount()` entirely.
 If you explicitly declare a typed property whose name matches a value passed to the component, PyBlade Live can assign the value automatically:
 
 ```python title="components/todo_list/todo_list.py"
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class TodoList(LiveComponent):
@@ -561,7 +561,7 @@ Sometimes a particular full-page component needs a different layout from the app
 You can specify a layout directly on the component by overriding its `layout` property:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class Dashboard(LiveComponent):
@@ -573,7 +573,7 @@ The `Dashboard` component will then use `templates/layouts/dashboard.html` inste
 You can also use the `@layout` decorator:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from pyblade.live.decorators import layout
 
 
@@ -585,7 +585,7 @@ class Dashboard(LiveComponent):
 For more advanced cases, you can override the `get_layout()` method to determine the layout dynamically:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class Dashboard(LiveComponent):
@@ -661,7 +661,7 @@ For example:
 The `id` parameter can then be received by the component's `mount()` method:
 
 ```python title="components/task_detail/task_detail.py"
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from app.models import Task
 
 
@@ -780,7 +780,7 @@ Unlike a regular `<script>` tag, `@script` also provides `$pb`, giving your Java
 This also means you don't need to manually listen for events using `document.addEventListener(...)` to initialize your component's JavaScript.
 
 ```python title="components/counter/counter.py"
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 
 class Counter(LiveComponent):

@@ -13,7 +13,7 @@ To dispatch an event from a PyBlade Live component, you can call the `emit()` me
 Below is an example of dispatching a `post-created` event from a `PostCreate` component:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 class PostCreate(LiveComponent):
 
@@ -41,7 +41,7 @@ To listen for an event in a PyBlade Live component, add the `@on` decorator abov
 
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 class Dashboard(LiveComponent):
 
@@ -61,7 +61,7 @@ Occasionally, you may want to dynamically generate event listener names at run-t
 For example, if you wanted to scope an event listener to a specific Database model, you could append the model's ID to the event name when dispatching like so:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from app.models import Post
 
 
@@ -76,7 +76,7 @@ class PostUpdate(LiveComponent):
 And then listen for that specific model:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from app.models import Post
 
 class PostDetail(LiveComponent):
@@ -124,7 +124,7 @@ If you want to use events for communicating directly between two components on t
 Below is an example of the `PostCreate` component dispatching the `post-created` event directly to the `Dashboard` component, skipping any other components listening for that specific event:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 class postCreate(LiveComponent):
 
@@ -138,7 +138,7 @@ class postCreate(LiveComponent):
 Using the `emit().self()` modifier, you can restrict an event to only being intercepted by the component it was triggered from:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 
 class postCreate(LiveComponent):
 
@@ -223,7 +223,7 @@ Pass any parameters as an object, the second argument of `$emit()`:
 Those parameters reach both PyBlade Live classes and JavaScript listeners. Here's the `refresh_posts` parameter received by a PyBlade Live class:
 
 ```python
-from pyblade import LiveComponent
+from pyblade.live import LiveComponent
 from pyblade.live.decorators import on
 
 
