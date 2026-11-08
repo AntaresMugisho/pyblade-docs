@@ -153,7 +153,7 @@ This time, in the above example, the text input's value will synchronize with th
 This is just scratching the surface of `pb:model`. We will go deeper when we'll talk about [Forms](/live-components/forms) in Live Components.
 
 
-<!-- ## Resetting properties
+{/* ## Resetting properties
 
 Sometimes, you may need to reset your properties back to their initial state after an action is performed by the user. In these cases, PyBlade's `LiveComponent` provides a `reset()` method that accepts one or more property names and resets their values to their initial state.
 
@@ -178,9 +178,9 @@ In the above example, after a user clicks "Add Task", the input field holding th
 <Callout type="warn" title="Warning">
 `reset()` won't work on values set in `mount()`.
 `reset()` will reset a property to its state before the `mount()` method was called. If you initialized the property in `mount()` to a different value, you will need to reset the property manually.
-</Callout> -->
+</Callout> */}
 
-<!-- ## Pulling properties
+{/* ## Pulling properties
 
 Alternatively, you can use the `pull()` method to both reset and retrieve the value in one operation.
 
@@ -197,7 +197,7 @@ class TodoComponent(LiveComponent):
     def add(self):
         if self.title:
             Task.objects.create(title=self.pull("title")) # [!code highlight]
-``` -->
+``` */}
 
 ## Accessing properties from JavaScript
 
